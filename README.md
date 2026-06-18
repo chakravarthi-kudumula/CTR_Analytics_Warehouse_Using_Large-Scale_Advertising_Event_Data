@@ -25,6 +25,7 @@ advertisement-analytics-warehouse/
 ## Dataset
 
 - Source: Criteo Display Advertising Challenge
+- Download link: [Kaggle Display Advertising Challenge dataset](https://figshare.com/articles/dataset/Kaggle_Display_Advertising_Challenge_dataset/5732310?utm_source=chatgpt.com&file=10082655)
 - Training rows: 45,840,617
 - Columns: 40
 - Layout: 1 label, 13 numeric features, 26 categorical features
