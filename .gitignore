@@ -1,0 +1,39 @@
+.DS_Store
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local virtual environments
+adv/
+.venv/
+venv/
+
+# Environment files
+.env
+
+# Large raw and processed data assets
+data/raw/*
+!data/raw/.gitkeep
+!data/raw/incoming/
+!data/raw/incoming/.gitkeep
+!data/raw/archive/
+!data/raw/archive/.gitkeep
+!data/raw/failed/
+!data/raw/failed/.gitkeep
+data/raw/archive/*.csv
+data/raw/failed/*.csv
+data/raw/incoming/*.csv
+data/processed/*
+!data/processed/.gitkeep
+
+# Generated samples
+data/sample/*.csv
+
+# Generated previews
+docs/airflow_pdf_preview/
+
+# Logs and temp files
+logs/
+tmp/
+airflow/logs/*
+!airflow/logs/.gitkeep

@@ -1,0 +1,121 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: ctr_analytics_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ctr_analytics
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d/sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ctr_analytics"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  airflow-init:
+    build:
+      context: .
+      dockerfile: airflow/Dockerfile
+    container_name: ctr_analytics_airflow_init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      AIRFLOW_HOME: /opt/airflow
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/project/airflow/dags
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/ctr_analytics
+      AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "True"
+      JAVA_HOME: /usr/lib/jvm/java-17-openjdk-arm64
+      SPARK_LOCAL_HOSTNAME: localhost
+    user: "0:0"
+    volumes:
+      - .:/opt/project
+      - airflow_logs:/opt/airflow/logs
+      - airflow_plugins:/opt/airflow/plugins
+    command: >
+      bash -c "
+      airflow db migrate &&
+      airflow users create
+      --username admin
+      --firstname Chakri
+      --lastname Admin
+      --role Admin
+      --email admin@example.com
+      --password admin || true
+      "
+
+  airflow-webserver:
+    build:
+      context: .
+      dockerfile: airflow/Dockerfile
+    container_name: ctr_analytics_airflow_webserver
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    environment:
+      AIRFLOW_HOME: /opt/airflow
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/project/airflow/dags
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/ctr_analytics
+      AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "True"
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: ctr_analytics
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      JAVA_HOME: /usr/lib/jvm/java-17-openjdk-arm64
+      SPARK_LOCAL_HOSTNAME: localhost
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/opt/project
+      - airflow_logs:/opt/airflow/logs
+      - airflow_plugins:/opt/airflow/plugins
+    command: webserver
+
+  airflow-scheduler:
+    build:
+      context: .
+      dockerfile: airflow/Dockerfile
+    container_name: ctr_analytics_airflow_scheduler
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    environment:
+      AIRFLOW_HOME: /opt/airflow
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/project/airflow/dags
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/ctr_analytics
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: ctr_analytics
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      JAVA_HOME: /usr/lib/jvm/java-17-openjdk-arm64
+      SPARK_LOCAL_HOSTNAME: localhost
+    volumes:
+      - .:/opt/project
+      - airflow_logs:/opt/airflow/logs
+      - airflow_plugins:/opt/airflow/plugins
+    command: scheduler
+
+volumes:
+  postgres_data:
+  airflow_logs:
+  airflow_plugins:

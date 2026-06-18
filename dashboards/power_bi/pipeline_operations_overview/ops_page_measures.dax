@@ -1,0 +1,47 @@
+Latest Batch Status Label =
+SELECTEDVALUE ( pipeline_health_dashboard[batch_status], "No batch selected" )
+
+Total Stage Runtime (s) =
+SUM ( pipeline_health_dashboard[total_stage_runtime_seconds] )
+
+Slowest Stage Runtime (s) =
+MAX ( pipeline_health_dashboard[slowest_stage_runtime_seconds] )
+
+Total Quality Checks =
+SUM ( pipeline_health_dashboard[total_quality_checks] )
+
+Passed Quality Checks =
+SUM ( pipeline_health_dashboard[passed_quality_checks] )
+
+Failed Quality Checks =
+SUM ( pipeline_health_dashboard[failed_quality_checks] )
+
+Warning Quality Checks =
+SUM ( pipeline_health_dashboard[warning_quality_checks] )
+
+Quality Pass Rate =
+DIVIDE ( [Passed Quality Checks], [Total Quality Checks], 0 )
+
+Latest Alert Count =
+SUM ( pipeline_health_dashboard[total_alerts] )
+
+Error Alert Count =
+SUM ( pipeline_health_dashboard[error_alerts] )
+
+Warning Alert Count =
+SUM ( pipeline_health_dashboard[warning_alerts] )
+
+Average Stage Runtime (s) =
+AVERAGE ( batch_runtime_trend[duration_seconds] )
+
+Max Stage Runtime (s) =
+MAX ( batch_runtime_trend[duration_seconds] )
+
+Rows Processed =
+SUM ( batch_runtime_trend[row_count] )
+
+Average Rows Per Second =
+AVERAGE ( batch_runtime_trend[rows_per_second] )
+
+Latest Batch Elapsed (s) =
+MAX ( pipeline_health_dashboard[batch_elapsed_seconds] )

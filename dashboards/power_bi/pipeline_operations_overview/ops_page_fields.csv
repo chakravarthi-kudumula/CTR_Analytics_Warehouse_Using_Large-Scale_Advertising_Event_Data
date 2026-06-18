@@ -1,0 +1,48 @@
+visual_name,source_object,field_name,usage
+Latest Batch Status,ops.pipeline_health_dashboard,batch_name,KPI subtitle
+Latest Batch Status,ops.pipeline_health_dashboard,batch_status,KPI value
+Total Stage Runtime,ops.pipeline_health_dashboard,total_stage_runtime_seconds,KPI value
+Slowest Stage Runtime,ops.pipeline_health_dashboard,slowest_stage_runtime_seconds,KPI value
+Quality Pass Rate,ops.pipeline_health_dashboard,passed_quality_checks,KPI numerator
+Quality Pass Rate,ops.pipeline_health_dashboard,total_quality_checks,KPI denominator
+Latest Alert Count,ops.pipeline_health_dashboard,total_alerts,KPI value
+Error Alerts,ops.pipeline_health_dashboard,error_alerts,KPI value
+Batch Health Table,ops.pipeline_health_dashboard,batch_id,table column
+Batch Health Table,ops.pipeline_health_dashboard,batch_name,table column
+Batch Health Table,ops.pipeline_health_dashboard,source_file,table column
+Batch Health Table,ops.pipeline_health_dashboard,source_type,table column
+Batch Health Table,ops.pipeline_health_dashboard,sample_scale,table column
+Batch Health Table,ops.pipeline_health_dashboard,batch_status,table column
+Batch Health Table,ops.pipeline_health_dashboard,last_successful_stage,table column
+Batch Health Table,ops.pipeline_health_dashboard,latest_quality_run_status,table column
+Batch Health Table,ops.pipeline_health_dashboard,total_quality_checks,table column
+Batch Health Table,ops.pipeline_health_dashboard,failed_quality_checks,table column
+Batch Health Table,ops.pipeline_health_dashboard,total_alerts,table column
+Batch Health Table,ops.pipeline_health_dashboard,error_alerts,table column
+Batch Health Table,ops.pipeline_health_dashboard,batch_elapsed_seconds,table column
+Batch Health Table,ops.pipeline_health_dashboard,archive_path,table column
+Batch Health Table,ops.pipeline_health_dashboard,failure_path,table column
+Stage Runtime by Batch,ops.batch_runtime_trend,object_name,axis
+Stage Runtime by Batch,ops.batch_runtime_trend,batch_name,legend
+Stage Runtime by Batch,ops.batch_runtime_trend,duration_seconds,value
+Rows Processed by Stage,ops.batch_runtime_trend,layer_name,axis
+Rows Processed by Stage,ops.batch_runtime_trend,row_count,value
+Rows Processed by Stage,ops.batch_runtime_trend,object_name,tooltip
+Rows Processed by Stage,ops.batch_runtime_trend,duration_seconds,tooltip
+Rows Processed by Stage,ops.batch_runtime_trend,rows_per_second,tooltip
+Runtime Trend Over Time,ops.batch_runtime_trend,recorded_at,axis
+Runtime Trend Over Time,ops.batch_runtime_trend,object_name,legend
+Runtime Trend Over Time,ops.batch_runtime_trend,duration_seconds,value
+Quality Summary,ops.pipeline_health_dashboard,passed_quality_checks,value
+Quality Summary,ops.pipeline_health_dashboard,warning_quality_checks,value
+Quality Summary,ops.pipeline_health_dashboard,failed_quality_checks,value
+Alert Summary,ops.pipeline_health_dashboard,batch_name,axis
+Alert Summary,ops.pipeline_health_dashboard,error_alerts,value
+Alert Summary,ops.pipeline_health_dashboard,warning_alerts,value
+Batch Lifecycle Timeline,ops.pipeline_health_dashboard,batch_name,table column
+Batch Lifecycle Timeline,ops.pipeline_health_dashboard,created_at,table column
+Batch Lifecycle Timeline,ops.pipeline_health_dashboard,started_at,table column
+Batch Lifecycle Timeline,ops.pipeline_health_dashboard,completed_at,table column
+Batch Lifecycle Timeline,ops.pipeline_health_dashboard,batch_elapsed_seconds,table column
+Batch Lifecycle Timeline,ops.pipeline_health_dashboard,batch_status,table column
+Batch Lifecycle Timeline,ops.pipeline_health_dashboard,archive_path,table column
