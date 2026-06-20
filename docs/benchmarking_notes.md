@@ -11,6 +11,7 @@ Benchmark data is stored in:
 - `ops.benchmark_snapshots`
 - `ops.pipeline_benchmark_summary`
 - `ops.batch_runtime_trend`
+- `ops.sample_scale_benchmark_comparison`
 
 ## What Gets Measured
 
@@ -47,6 +48,7 @@ For dashboarding, use:
 
 - `ops.pipeline_health_dashboard` for batch-level pipeline health
 - `ops.batch_runtime_trend` for stage runtime comparisons
+- `ops.sample_scale_benchmark_comparison` for latest `100k` / `1m` / `5m` scale snapshots
 
 This gives a clean split between:
 

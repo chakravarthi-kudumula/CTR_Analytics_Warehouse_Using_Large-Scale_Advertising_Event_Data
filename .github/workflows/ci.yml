@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Compile Python files
+        run: |
+          python - <<'PY'
+          import pathlib
+          import py_compile
+
+          roots = [pathlib.Path('scripts'), pathlib.Path('spark_jobs'), pathlib.Path('airflow/dags'), pathlib.Path('tests')]
+          for root in roots:
+              for path in sorted(root.glob('*.py')):
+                  py_compile.compile(str(path), doraise=True)
+          print('python_compile_OK')
+          PY
+
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -p 'test_*.py'

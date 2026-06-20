@@ -37,6 +37,17 @@ So the default Stage 4 build focuses on:
 
 The bridge tables remain available as a later extension when we specifically need feature-level warehouse joins.
 
+## Performance Improvements
+
+The warehouse loader was tightened to behave better at larger batch sizes:
+
+- the fact load is batch-scoped instead of full-refresh
+- categorical dimension extraction now uses one batch scan with `cross join lateral (values ...)`
+- unnecessary `order by` clauses were removed from the batch inserts
+- staging and fact indexes were expanded to support batch-local joins and lookups
+
+These changes reduced unnecessary sorting and repeated table scans, which matters most when the project scales from `1M` to `5M`.
+
 ## Build Command
 
 Run the warehouse build from the project root:

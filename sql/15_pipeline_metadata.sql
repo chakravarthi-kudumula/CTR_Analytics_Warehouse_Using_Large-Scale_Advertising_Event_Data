@@ -318,9 +318,7 @@ join ops.batch_registry b
   on b.batch_id = s.batch_id
 where s.benchmark_rank = 1;
 
-drop view if exists ops.pipeline_health_dashboard;
-
-create view ops.pipeline_health_dashboard as
+create or replace view ops.pipeline_health_dashboard as
 with latest_quality_runs as (
     select
         run_id,
@@ -423,9 +421,7 @@ left join latest_alerts a
 left join latest_runtime r
   on r.batch_id = b.batch_id;
 
-drop view if exists ops.batch_runtime_trend;
-
-create view ops.batch_runtime_trend as
+create or replace view ops.batch_runtime_trend as
 select
     b.batch_id,
     b.batch_name,
@@ -441,3 +437,46 @@ from ops.pipeline_benchmark_summary s
 join ops.batch_registry b
   on b.batch_id = s.batch_id
 where s.benchmark_name = 'pipeline_stage_runtime';
+
+create or replace view ops.sample_scale_benchmark_comparison as
+with ranked_scale_batches as (
+    select
+        batch_id,
+        batch_name,
+        sample_scale,
+        source_type,
+        completed_at,
+        row_number() over (
+            partition by sample_scale
+            order by completed_at desc nulls last, batch_id desc
+        ) as scale_rank
+    from ops.batch_registry
+    where sample_scale in ('100k', '1m', '5m')
+),
+latest_scale_batches as (
+    select
+        batch_id,
+        batch_name,
+        sample_scale,
+        source_type,
+        completed_at
+    from ranked_scale_batches
+    where scale_rank = 1
+)
+select
+    b.batch_id,
+    b.batch_name,
+    b.sample_scale,
+    b.source_type,
+    s.benchmark_name,
+    s.layer_name,
+    s.object_name,
+    s.row_count,
+    round(s.duration_seconds::numeric, 3) as duration_seconds,
+    round(s.rows_per_second::numeric, 3) as rows_per_second,
+    round(s.storage_mb::numeric, 3) as storage_mb,
+    s.recorded_at,
+    b.completed_at
+from ops.pipeline_benchmark_summary s
+join latest_scale_batches b
+  on b.batch_id = s.batch_id;

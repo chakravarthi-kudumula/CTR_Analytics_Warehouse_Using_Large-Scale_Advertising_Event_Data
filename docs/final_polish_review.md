@@ -11,6 +11,8 @@ Strong areas:
 - PySpark preprocessing integrated into the same batch pipeline
 - quality framework with history, thresholds, and dashboard-friendly views
 - ops metadata, runtime benchmarking, and drift monitoring
+- shared config, one-command pipeline runner, and repository-level validation
+- data dictionary and lineage documentation for faster onboarding
 - validated `1M` and `5M` scale evidence
 
 ## What Feels Production-Grade
@@ -22,6 +24,8 @@ Strong areas:
 - sensor-driven orchestration path
 - feature-store refresh integrated into the orchestrated pipeline
 - drift monitoring across batches and stages
+- unit-test coverage for pure Python helpers
+- GitHub Actions CI for compile and test validation
 
 ## What Still Feels Like a Conscious Tradeoff
 

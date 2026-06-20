@@ -1,6 +1,26 @@
+[![CI](https://github.com/chakravarthi-kudumula/CTR_Analytics_Warehouse_Using_Large-Scale_Advertising_Event_Data/actions/workflows/ci.yml/badge.svg)](https://github.com/chakravarthi-kudumula/CTR_Analytics_Warehouse_Using_Large-Scale_Advertising_Event_Data/actions/workflows/ci.yml)
+
 # CTR Analytics Warehouse Using Large-Scale Advertising Event Data
 
 This project builds a production-grade PostgreSQL analytics warehouse on top of the Criteo Display Advertising Challenge dataset. The target output is a layered warehouse with raw ingestion, staging transformations, analytics marts, data quality checks, and machine-learning-ready CTR feature tables.
+
+## Quick Highlights
+
+- validated on `1M` and `5M` event batches
+- batch-aware PostgreSQL warehouse with incremental marts and feature-store loading
+- Airflow orchestration with a file-sensor intake path
+- PySpark preprocessing integrated into the pipeline
+- custom data-quality framework, ops monitoring, and drift tracking
+- benchmark evidence captured in both SQL views and documentation
+
+## Key References
+
+- project summary: `docs/project_summary.md`
+- architecture overview: `docs/architecture_overview.md`
+- data dictionary: `docs/data_dictionary.md`
+- data lineage: `docs/data_lineage.md`
+- benchmark report: `docs/final_benchmark_report.md`
+- repository guide: `docs/repository_guide.md`
 
 ## Project Structure
 
@@ -40,6 +60,24 @@ The raw dataset is stored locally under `data/raw/` and excluded from Git to avo
    `python3 -m venv adv`
 3. Install Python dependencies:
    `pip install -r requirements.txt`
+
+## One-Command Local Run
+
+Run the full local pipeline from a single command:
+
+`python3 scripts/run_pipeline.py --sample 1m --batch-name criteo_1m_demo --use-spark`
+
+This runner executes:
+
+- raw load
+- optional Spark preprocessing
+- staging build
+- warehouse build
+- marts build
+- advanced SQL build
+- feature store build
+- quality checks
+- benchmark capture
 
 ## Planned Layers
 
@@ -359,6 +397,9 @@ Helpful references:
 
 - `docs/project_summary.md`
 - `docs/architecture_overview.md`
+- `docs/data_dictionary.md`
+- `docs/data_lineage.md`
+- `docs/repository_guide.md`
 - `docs/final_polish_review.md`
 
 ## Portfolio Positioning
@@ -371,3 +412,5 @@ This project now demonstrates:
 - production-style audit logging and validation
 - advanced analytical SQL with ranking, rolling metrics, cumulative metrics, and segment qualification
 - performance-minded use of materialized views, indexes, and refreshable analytical assets
+- repeatable local execution through `scripts/run_pipeline.py`
+- repository validation through unit tests and GitHub Actions CI

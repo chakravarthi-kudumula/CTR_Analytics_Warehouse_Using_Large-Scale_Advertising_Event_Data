@@ -4,6 +4,10 @@
 
 This report summarizes the current scale-up evidence for the CTR analytics platform after moving from the `1M` development batch to the `5M` validation batch.
 
+The same benchmark story is now queryable inside PostgreSQL through:
+
+- `ops.sample_scale_benchmark_comparison`
+
 Compared batches:
 
 - `batch_id = 5`
