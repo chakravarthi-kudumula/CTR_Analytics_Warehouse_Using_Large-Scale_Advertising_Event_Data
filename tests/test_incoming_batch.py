@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 import tempfile
 import unittest
@@ -40,8 +41,8 @@ class IncomingBatchTests(unittest.TestCase):
             older.write_text("label\n1\n")
             newer.write_text("label\n0\n")
             ignored.write_text("skip")
-            older.touch()
-            newer.touch()
+            os.utime(older, (1_700_000_000, 1_700_000_000))
+            os.utime(newer, (1_700_000_100, 1_700_000_100))
 
             with mock.patch.object(incoming_batch, "INCOMING_DIR", temp_path):
                 candidate = incoming_batch.locate_candidate_file(PROJECT_ROOT, None)
