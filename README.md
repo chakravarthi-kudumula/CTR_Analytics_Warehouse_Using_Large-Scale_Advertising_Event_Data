@@ -1,8 +1,22 @@
 [![CI](https://github.com/chakravarthi-kudumula/CTR_Analytics_Warehouse_Using_Large-Scale_Advertising_Event_Data/actions/workflows/ci.yml/badge.svg)](https://github.com/chakravarthi-kudumula/CTR_Analytics_Warehouse_Using_Large-Scale_Advertising_Event_Data/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Data%20Warehouse-336791?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![PySpark](https://img.shields.io/badge/PySpark-Batch%20Processing-E25A1C?logo=apachespark&logoColor=white)](https://spark.apache.org/docs/latest/api/python/)
+[![Airflow](https://img.shields.io/badge/Apache%20Airflow-Orchestration-017CEE?logo=apacheairflow&logoColor=white)](https://airflow.apache.org/)
+[![Docker](https://img.shields.io/badge/Docker-Containerized%20Local%20Platform-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![Power BI](https://img.shields.io/badge/Power%20BI-Dashboard%20Ready-F2C811?logo=powerbi&logoColor=black)](https://powerbi.microsoft.com/)
+[![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-CI%2FCD-2088FF?logo=githubactions&logoColor=white)](https://github.com/features/actions)
 
 # CTR Analytics Warehouse Using Large-Scale Advertising Event Data
 
 This project builds a production-grade PostgreSQL analytics warehouse on top of the Criteo Display Advertising Challenge dataset. The target output is a layered warehouse with raw ingestion, staging transformations, analytics marts, data quality checks, and machine-learning-ready CTR feature tables.
+
+## What This Project Proves
+
+- I can turn large-scale raw event data into a layered analytics platform, not just a set of SQL queries.
+- I can combine PostgreSQL, PySpark, and Airflow into one batch-aware pipeline.
+- I can build operational metadata, quality validation, benchmark tracking, and ML-ready feature outputs around the warehouse.
+- I can validate the platform on larger data volumes instead of stopping at toy samples.
 
 ## Quick Highlights
 
@@ -12,6 +26,20 @@ This project builds a production-grade PostgreSQL analytics warehouse on top of 
 - PySpark preprocessing integrated into the pipeline
 - custom data-quality framework, ops monitoring, and drift tracking
 - benchmark evidence captured in both SQL views and documentation
+
+## Validated Scale Results
+
+Latest benchmarked scale-up:
+
+- raw load: `26s -> 114s` from `1M` to `5M`
+- Spark preprocessing: `44s -> 220s`
+- staging build: `34s -> 126s`
+- warehouse build: `59s -> 348s`
+- quality framework: `8s -> 47s`
+
+Detailed benchmark report:
+
+- `docs/final_benchmark_report.md`
 
 ## Key References
 
@@ -90,7 +118,15 @@ This runner executes:
 
 ## Status
 
-Stage 1 data sampling is implemented. The sampling pipeline creates representative `100K`, `1M`, and `5M` CSV extracts from `train.txt` for testing, development, and final validation.
+The platform is fully built as a local production-style batch analytics system with:
+
+- sampled development and validation datasets
+- raw, staging, warehouse, marts, quality, ops, and feature-store layers
+- Airflow DAG orchestration
+- PySpark preprocessing
+- incoming-file automation
+- benchmark capture and drift monitoring
+- GitHub Actions CI and unit tests
 
 ## Stage 1 Sampling
 
