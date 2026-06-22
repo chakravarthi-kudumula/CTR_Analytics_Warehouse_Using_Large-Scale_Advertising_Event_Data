@@ -5,3 +5,4 @@ create schema if not exists marts;
 create schema if not exists quality;
 create schema if not exists ops;
 create schema if not exists feature_store;
+create schema if not exists ml;

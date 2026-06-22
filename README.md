@@ -49,6 +49,7 @@ Detailed benchmark report:
 - data lineage: `docs/data_lineage.md`
 - benchmark report: `docs/final_benchmark_report.md`
 - repository guide: `docs/repository_guide.md`
+- ML extension workflow: `docs/ml_extension_workflow.md`
 
 ## Project Structure
 
@@ -436,7 +437,38 @@ Helpful references:
 - `docs/data_dictionary.md`
 - `docs/data_lineage.md`
 - `docs/repository_guide.md`
+- `docs/ml_extension_workflow.md`
+- `docs/ml_notes.md`
 - `docs/final_polish_review.md`
+
+## Stage 16 ML Foundation
+
+The project now includes the first ML-platform foundation step.
+
+Core files:
+
+- `sql/21_ml_schema.sql`
+- `sql/23_ml_checks.sql`
+- `scripts/ml_setup.py`
+- `scripts/ml_training_dataset.py`
+- `docs/ml_extension_workflow.md`
+- `docs/ml_notes.md`
+
+Main ML objects added:
+
+- `ml.model_registry`
+- `ml.training_runs`
+- `ml.model_metrics`
+- `ml.prediction_scores`
+- `ml.latest_training_metrics`
+
+Set up the ML schema from the project root:
+
+`python3 scripts/ml_setup.py`
+
+Extract batch-aware ML dataset splits from the feature store:
+
+`python3 scripts/ml_training_dataset.py --batch-name <batch_name>`
 
 ## Portfolio Positioning
 

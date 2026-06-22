@@ -18,6 +18,8 @@ ARCHIVE_DIR = RAW_DIR / "archive"
 FAILED_DIR = RAW_DIR / "failed"
 SAMPLE_DIR = DATA_DIR / "sample"
 PROCESSED_DIR = DATA_DIR / "processed"
+ML_DIR = DATA_DIR / "ml"
+ML_TRAINING_DATASET_DIR = ML_DIR / "training_datasets"
 SQL_DIR = PROJECT_ROOT / "sql"
 SPARK_JOBS_DIR = PROJECT_ROOT / "spark_jobs"
 
@@ -57,3 +59,8 @@ def ensure_batch_directories() -> tuple[Path, Path, Path]:
     ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
     FAILED_DIR.mkdir(parents=True, exist_ok=True)
     return INCOMING_DIR, ARCHIVE_DIR, FAILED_DIR
+
+
+def ensure_ml_directories() -> Path:
+    ML_TRAINING_DATASET_DIR.mkdir(parents=True, exist_ok=True)
+    return ML_TRAINING_DATASET_DIR

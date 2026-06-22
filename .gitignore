@@ -25,6 +25,8 @@ data/raw/failed/*.csv
 data/raw/incoming/*.csv
 data/processed/*
 !data/processed/.gitkeep
+data/ml/*
+!data/ml/.gitkeep
 
 # Generated samples
 data/sample/*.csv
