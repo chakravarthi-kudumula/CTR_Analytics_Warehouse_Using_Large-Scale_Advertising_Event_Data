@@ -20,6 +20,7 @@ SAMPLE_DIR = DATA_DIR / "sample"
 PROCESSED_DIR = DATA_DIR / "processed"
 ML_DIR = DATA_DIR / "ml"
 ML_TRAINING_DATASET_DIR = ML_DIR / "training_datasets"
+ML_MODEL_DIR = ML_DIR / "models"
 SQL_DIR = PROJECT_ROOT / "sql"
 SPARK_JOBS_DIR = PROJECT_ROOT / "spark_jobs"
 
@@ -63,4 +64,5 @@ def ensure_batch_directories() -> tuple[Path, Path, Path]:
 
 def ensure_ml_directories() -> Path:
     ML_TRAINING_DATASET_DIR.mkdir(parents=True, exist_ok=True)
+    ML_MODEL_DIR.mkdir(parents=True, exist_ok=True)
     return ML_TRAINING_DATASET_DIR

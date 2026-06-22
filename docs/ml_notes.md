@@ -13,6 +13,8 @@ Completed in this step:
 - batch-aware ML dataset extraction script added
 - split manifest generation added
 - ML dataset artifacts now register in ops metadata
+- baseline Logistic Regression training script added
+- baseline model metrics and model artifacts now have a storage path
 
 This means the project can now store:
 - model versions
@@ -26,6 +28,7 @@ This means the project can now store:
 - `sql/23_ml_checks.sql`
 - `scripts/ml_setup.py`
 - `scripts/ml_training_dataset.py`
+- `scripts/train_ctr_baseline.py`
 - `docs/ml_extension_workflow.md`
 
 ## Current ML Objects
@@ -57,6 +60,13 @@ It also gives us a repeatable way to extract:
 - test split artifacts
 - split metadata for later training scripts
 
+And it now gives us a baseline training path that can:
+- train a Logistic Regression CTR model
+- evaluate train / validation / test splits
+- register model metadata in `ml.model_registry`
+- register metric rows in `ml.model_metrics`
+- store the model artifact and metric summary under `data/ml/models/`
+
 ## Setup Command
 
 Run from the project root:
@@ -77,6 +87,6 @@ psql -d ctr_analytics -f sql/23_ml_checks.sql
 
 After the ML schema foundation is in place, the next best step is:
 
-1. build the logistic-regression baseline first
-2. store training-run and metric outputs in the new ML tables
-3. then add boosted-tree model comparison
+1. validate the baseline model end to end once `scikit-learn` is installed
+2. then add boosted-tree model comparison
+3. then add batch scoring into `ml.prediction_scores`

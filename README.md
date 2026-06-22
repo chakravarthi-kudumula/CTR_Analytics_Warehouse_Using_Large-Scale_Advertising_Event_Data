@@ -451,6 +451,7 @@ Core files:
 - `sql/23_ml_checks.sql`
 - `scripts/ml_setup.py`
 - `scripts/ml_training_dataset.py`
+- `scripts/train_ctr_baseline.py`
 - `docs/ml_extension_workflow.md`
 - `docs/ml_notes.md`
 
@@ -469,6 +470,10 @@ Set up the ML schema from the project root:
 Extract batch-aware ML dataset splits from the feature store:
 
 `python3 scripts/ml_training_dataset.py --batch-name <batch_name>`
+
+Train the baseline Logistic Regression model from the extracted dataset:
+
+`python3 scripts/train_ctr_baseline.py --batch-name <batch_name>`
 
 ## Portfolio Positioning
 
