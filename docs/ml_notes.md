@@ -15,6 +15,8 @@ Completed in this step:
 - ML dataset artifacts now register in ops metadata
 - baseline Logistic Regression training script added
 - baseline model metrics and model artifacts now have a storage path
+- batch scoring script added
+- prediction score artifacts now register in ops metadata
 
 This means the project can now store:
 - model versions
@@ -29,6 +31,7 @@ This means the project can now store:
 - `scripts/ml_setup.py`
 - `scripts/ml_training_dataset.py`
 - `scripts/train_ctr_baseline.py`
+- `scripts/score_ctr_batch.py`
 - `docs/ml_extension_workflow.md`
 
 ## Current ML Objects
@@ -67,6 +70,13 @@ And it now gives us a baseline training path that can:
 - register metric rows in `ml.model_metrics`
 - store the model artifact and metric summary under `data/ml/models/`
 
+And it now gives us a scoring path that can:
+- load a registered trained model
+- score a chosen batch from `feature_store.ctr_training_features`
+- write probabilities into `ml.prediction_scores`
+- assign score deciles and top-decile flags
+- store scoring artifacts under `data/ml/scoring/`
+
 ## Setup Command
 
 Run from the project root:
@@ -85,8 +95,8 @@ psql -d ctr_analytics -f sql/23_ml_checks.sql
 
 ## Next Recommended Step
 
-After the ML schema foundation is in place, the next best step is:
+After the baseline training and scoring path are in place, the next best step is:
 
-1. validate the baseline model end to end once `scikit-learn` is installed
-2. then add boosted-tree model comparison
-3. then add batch scoring into `ml.prediction_scores`
+1. add model-comparison training for boosted trees like `LightGBM` or `XGBoost`
+2. add ML monitoring views for score drift and top-decile performance
+3. optionally orchestrate ML training and scoring as an Airflow branch

@@ -452,6 +452,7 @@ Core files:
 - `scripts/ml_setup.py`
 - `scripts/ml_training_dataset.py`
 - `scripts/train_ctr_baseline.py`
+- `scripts/score_ctr_batch.py`
 - `docs/ml_extension_workflow.md`
 - `docs/ml_notes.md`
 
@@ -474,6 +475,10 @@ Extract batch-aware ML dataset splits from the feature store:
 Train the baseline Logistic Regression model from the extracted dataset:
 
 `python3 scripts/train_ctr_baseline.py --batch-name <batch_name>`
+
+Score a batch and write prediction outputs into `ml.prediction_scores`:
+
+`python3 scripts/score_ctr_batch.py --batch-name <batch_name>`
 
 ## Portfolio Positioning
 
