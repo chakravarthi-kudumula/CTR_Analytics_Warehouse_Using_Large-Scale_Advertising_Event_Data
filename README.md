@@ -441,18 +441,23 @@ Helpful references:
 - `docs/ml_notes.md`
 - `docs/final_polish_review.md`
 
-## Stage 16 ML Foundation
+## Stage 16 ML Foundation And Canonical 1M Run
 
-The project now includes the first ML-platform foundation step.
+The project now includes a real large-batch ML workflow anchored on a canonical `1M` batch, not just a tiny demo path.
 
 Core files:
 
 - `sql/21_ml_schema.sql`
 - `sql/23_ml_checks.sql`
+- `sql/24_ml_model_comparison_summary.sql`
 - `scripts/ml_setup.py`
 - `scripts/ml_training_dataset.py`
 - `scripts/train_ctr_baseline.py`
 - `scripts/score_ctr_batch.py`
+- `scripts/train_ctr_sgd.py`
+- `scripts/train_ctr_xgboost.py`
+- `scripts/score_ctr_batch_chunked.py`
+- `sql/22_ml_monitoring_views.sql`
 - `docs/ml_extension_workflow.md`
 - `docs/ml_notes.md`
 
@@ -463,6 +468,38 @@ Main ML objects added:
 - `ml.model_metrics`
 - `ml.prediction_scores`
 - `ml.latest_training_metrics`
+- `ml.score_decile_performance`
+- `ml.top_decile_performance`
+- `ml.score_drift_summary`
+- `ml.model_comparison_summary`
+
+Canonical large-batch ML run:
+
+- batch: `criteo_1m_ml_canonical_batch`
+- feature rows: `1,000,000`
+- train rows: `714,286`
+- validation rows: `142,857`
+- test rows: `142,857`
+- canonical active baseline: `ctr_logistic_regression v1`
+- scalable implementation path: chunked SGD logistic training plus chunked batch scoring
+
+Canonical `1M` validation metrics:
+
+- ROC-AUC: `0.516458`
+- PR-AUC: `0.264343`
+- log loss: `10.763619`
+- precision@10%: `0.317934`
+- lift@10%: `1.238589`
+
+Canonical `1M` scoring summary:
+
+- scored rows: `1,000,000`
+- average predicted CTR: `0.107596`
+- batch actual CTR: `0.256223`
+- top decile actual CTR: `0.310640`
+- top decile lift vs batch CTR: `1.212381`
+
+The earlier tiny incoming-batch experiments remain in the metadata layer for comparison, but they are no longer the main ML claim. The canonical ML story is now the `1M` run above, while small-batch runs are treated as early prototype experiments and are exposed through `ml.model_comparison_summary`.
 
 Set up the ML schema from the project root:
 
@@ -472,13 +509,33 @@ Extract batch-aware ML dataset splits from the feature store:
 
 `python3 scripts/ml_training_dataset.py --batch-name <batch_name>`
 
-Train the baseline Logistic Regression model from the extracted dataset:
+Train the small-batch baseline Logistic Regression model from the extracted dataset:
 
 `python3 scripts/train_ctr_baseline.py --batch-name <batch_name>`
 
-Score a batch and write prediction outputs into `ml.prediction_scores`:
+Score a smaller batch and write prediction outputs into `ml.prediction_scores`:
 
 `python3 scripts/score_ctr_batch.py --batch-name <batch_name>`
+
+Train the scalable canonical `1M` logistic baseline for larger batches:
+
+`python3 scripts/train_ctr_sgd.py --batch-name <batch_name>`
+
+Score a larger batch with the chunked scoring path:
+
+`python3 scripts/score_ctr_batch_chunked.py --batch-name <batch_name> --model-name ctr_logistic_regression`
+
+Train an experimental tree-based comparison model:
+
+`python3 scripts/train_ctr_xgboost.py --batch-name <batch_name>`
+
+Apply or refresh the ML monitoring views:
+
+`psql -d ctr_analytics -f sql/22_ml_monitoring_views.sql`
+
+Apply or refresh the ML comparison summary view:
+
+`psql -d ctr_analytics -f sql/24_ml_model_comparison_summary.sql`
 
 ## Portfolio Positioning
 

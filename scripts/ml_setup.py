@@ -22,6 +22,8 @@ def main() -> None:
 
     run_psql(sql_dir / "01_create_schemas.sql", args.database, args)
     run_psql(sql_dir / "21_ml_schema.sql", args.database, args)
+    run_psql(sql_dir / "22_ml_monitoring_views.sql", args.database, args)
+    run_psql(sql_dir / "24_ml_model_comparison_summary.sql", args.database, args)
 
     table_count = int(
         run_scalar_query(
@@ -41,7 +43,13 @@ def main() -> None:
             select count(*)
             from information_schema.views
             where table_schema = 'ml'
-              and table_name = 'latest_training_metrics';
+              and table_name in (
+                  'latest_training_metrics',
+                  'score_decile_performance',
+                  'top_decile_performance',
+                  'score_drift_summary',
+                  'model_comparison_summary'
+              );
             """,
             args.database,
             args,
@@ -51,7 +59,7 @@ def main() -> None:
     print(f"Project root: {PROJECT_ROOT}")
     print(f"ML tables created or confirmed: {table_count}")
     print(f"ML views created or confirmed: {view_count}")
-    print("ML schema foundation is ready.")
+    print("ML schema and monitoring views are ready.")
 
 
 if __name__ == "__main__":

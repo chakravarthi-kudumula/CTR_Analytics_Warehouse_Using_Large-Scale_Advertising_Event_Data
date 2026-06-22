@@ -225,6 +225,10 @@ Alternative:
 - validate on a held-out portion or later day buckets
 - score a separate incoming/demo batch
 
+Current canonical implementation note:
+- the active large-batch baseline uses a chunked SGD-based logistic training path under the canonical model name `ctr_logistic_regression`
+- small-batch experiments are still retained in metadata, but they are treated as prototype runs rather than the main benchmark story
+
 ## Feature Strategy
 
 Start from:
