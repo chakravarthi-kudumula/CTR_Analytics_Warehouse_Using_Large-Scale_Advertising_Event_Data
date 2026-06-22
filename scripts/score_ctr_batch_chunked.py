@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import pickle
 from datetime import datetime, timezone
 
 from pipeline_tracking import (
@@ -149,13 +150,13 @@ def main() -> None:
     )
 
     try:
-        import joblib
         import pandas as pd
 
         with connect(args) as connection:
             model_metadata = fetch_model_metadata(connection, args.model_name, args.model_version)
 
-        model = joblib.load(model_metadata["artifact_path"])
+        with open(model_metadata["artifact_path"], "rb") as handle:
+            model = pickle.load(handle)
 
         raw_event_ids: list[int] = []
         batch_ids: list[int] = []

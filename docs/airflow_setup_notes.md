@@ -48,11 +48,15 @@ Current DAG:
 Current task flow:
 
 1. raw load
-2. staging build
-3. warehouse build
-4. marts build
-5. advanced SQL build
-6. quality checks
+2. Spark preprocessing
+3. staging build
+4. warehouse build
+5. marts build
+6. advanced SQL build
+7. feature store build
+8. quality checks
+9. optional ML dataset build, training, and scoring
+10. benchmark capture and archive lifecycle
 
 Sensor DAG flow:
 
@@ -84,15 +88,41 @@ The first DAG supports:
 
 - `sample`
 - `batch_name`
+- `run_ml`
+- `ml_model_name`
+- `ml_model_version`
+- `ml_dataset_name`
 
 Example Airflow run config:
 
 ```json
 {
   "sample": "1m",
-  "batch_name": "criteo_1m_airflow_batch"
+  "batch_name": "criteo_1m_airflow_batch",
+  "run_ml": true,
+  "ml_model_name": "ctr_logistic_regression",
+  "ml_model_version": "v1"
 }
 ```
+
+### Optional ML Branch
+
+The main processing DAG now includes an opt-in ML branch.
+
+When `run_ml` is `true`, the DAG also runs:
+
+1. `scripts/ml_setup.py`
+2. `scripts/ml_training_dataset.py`
+3. `scripts/train_ctr_sgd.py`
+4. `scripts/score_ctr_batch_chunked.py`
+
+This is intentionally opt-in so small incoming production-style batches do not retrain models automatically.
+
+Recommended use:
+
+- keep `run_ml` off for normal incoming-file ingestion
+- turn `run_ml` on for canonical sample runs, controlled backfills, or explicit ML refreshes
+- use `sample = 1m` plus `run_ml = true` when you want the full canonical ML path through Airflow
 
 ## Sensor-Based Intake
 

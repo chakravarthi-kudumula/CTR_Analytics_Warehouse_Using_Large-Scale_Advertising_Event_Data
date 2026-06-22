@@ -15,7 +15,7 @@ from airflow.utils.task_group import TaskGroup
 
 
 PROJECT_ROOT = "/opt/project"
-PYTHON_BIN = "python"
+PYTHON_BIN = sys.executable or "python"
 SCRIPTS_DIR = f"{PROJECT_ROOT}/scripts"
 if SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, SCRIPTS_DIR)
@@ -177,7 +177,7 @@ def register_pipeline_alert(context, alert_level: str, alert_type: str, message:
                         alert_message,
                         alert_context
                     )
-                    values (%s, %s, %s, %s, %s, %s, %s, %s::jsonb);
+                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb);
                     """,
                     (
                         batch_id,
@@ -475,4 +475,76 @@ with DAG(
             ),
         )
 
-    has_batch_to_process >> raw_layer >> spark_layer >> transformation_layers >> analytics_layers >> quality_layer >> capture_benchmarks >> archive_incoming_file
+    with TaskGroup(group_id="ml_layer") as ml_layer:
+        setup_ml_foundation = BashOperator(
+            task_id="setup_ml_foundation",
+            execution_timeout=timedelta(minutes=10),
+            bash_command=(
+                "{% set run_ml = dag_run.conf.get('run_ml', false) if dag_run and dag_run.conf else false %}"
+                f"cd {PROJECT_ROOT} && "
+                "if [ \"{{ run_ml }}\" = \"True\" ] || [ \"{{ run_ml }}\" = \"true\" ]; then "
+                f"{PYTHON_BIN} scripts/ml_setup.py; "
+                "else echo 'SKIP_ML_SETUP'; fi"
+            ),
+        )
+
+        build_ml_training_dataset = BashOperator(
+            task_id="build_ml_training_dataset",
+            execution_timeout=timedelta(minutes=20),
+            bash_command=(
+                "{% set ctx = ti.xcom_pull(task_ids='ops_layer.prepare_batch_context') %}"
+                "{% set run_ml = dag_run.conf.get('run_ml', false) if dag_run and dag_run.conf else false %}"
+                "{% set dataset_name = dag_run.conf.get('ml_dataset_name') if dag_run and dag_run.conf else none %}"
+                f"cd {PROJECT_ROOT} && "
+                "if [ \"{{ run_ml }}\" = \"True\" ] || [ \"{{ run_ml }}\" = \"true\" ]; then "
+                f"{PYTHON_BIN} scripts/ml_training_dataset.py "
+                "--batch-name '{{ ctx['batch_name'] }}' "
+                "{% if dataset_name %}--dataset-name '{{ dataset_name }}' {% endif %}"
+                "--triggered-by airflow; "
+                "else echo 'SKIP_ML_TRAINING_DATASET'; fi"
+            ),
+        )
+
+        train_ml_baseline = BashOperator(
+            task_id="train_ml_baseline",
+            execution_timeout=timedelta(minutes=45),
+            bash_command=(
+                "{% set ctx = ti.xcom_pull(task_ids='ops_layer.prepare_batch_context') %}"
+                "{% set run_ml = dag_run.conf.get('run_ml', false) if dag_run and dag_run.conf else false %}"
+                "{% set model_name = dag_run.conf.get('ml_model_name', 'ctr_logistic_regression') if dag_run and dag_run.conf else 'ctr_logistic_regression' %}"
+                "{% set model_version = dag_run.conf.get('ml_model_version', 'v1') if dag_run and dag_run.conf else 'v1' %}"
+                "{% set dataset_name = dag_run.conf.get('ml_dataset_name') if dag_run and dag_run.conf else none %}"
+                f"cd {PROJECT_ROOT} && "
+                "if [ \"{{ run_ml }}\" = \"True\" ] || [ \"{{ run_ml }}\" = \"true\" ]; then "
+                f"{PYTHON_BIN} scripts/train_ctr_sgd.py "
+                "--batch-name '{{ ctx['batch_name'] }}' "
+                "--model-name '{{ model_name }}' "
+                "--model-version '{{ model_version }}' "
+                "{% if dataset_name %}--dataset-name '{{ dataset_name }}' {% endif %}"
+                "--triggered-by airflow; "
+                "else echo 'SKIP_ML_TRAINING'; fi"
+            ),
+        )
+
+        score_ml_batch = BashOperator(
+            task_id="score_ml_batch",
+            execution_timeout=timedelta(minutes=45),
+            bash_command=(
+                "{% set ctx = ti.xcom_pull(task_ids='ops_layer.prepare_batch_context') %}"
+                "{% set run_ml = dag_run.conf.get('run_ml', false) if dag_run and dag_run.conf else false %}"
+                "{% set model_name = dag_run.conf.get('ml_model_name', 'ctr_logistic_regression') if dag_run and dag_run.conf else 'ctr_logistic_regression' %}"
+                "{% set model_version = dag_run.conf.get('ml_model_version', 'v1') if dag_run and dag_run.conf else 'v1' %}"
+                f"cd {PROJECT_ROOT} && "
+                "if [ \"{{ run_ml }}\" = \"True\" ] || [ \"{{ run_ml }}\" = \"true\" ]; then "
+                f"{PYTHON_BIN} scripts/score_ctr_batch_chunked.py "
+                "--batch-name '{{ ctx['batch_name'] }}' "
+                "--model-name '{{ model_name }}' "
+                "--model-version '{{ model_version }}' "
+                "--triggered-by airflow; "
+                "else echo 'SKIP_ML_SCORING'; fi"
+            ),
+        )
+
+        setup_ml_foundation >> build_ml_training_dataset >> train_ml_baseline >> score_ml_batch
+
+    has_batch_to_process >> raw_layer >> spark_layer >> transformation_layers >> analytics_layers >> quality_layer >> ml_layer >> capture_benchmarks >> archive_incoming_file

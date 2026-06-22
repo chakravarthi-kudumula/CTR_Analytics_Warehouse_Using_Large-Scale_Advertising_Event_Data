@@ -261,6 +261,18 @@ Start Airflow:
 
 `docker compose up -d airflow-webserver airflow-scheduler`
 
+Trigger the canonical ML path through Airflow with a manual DAG config like:
+
+```json
+{
+  "sample": "1m",
+  "batch_name": "criteo_1m_airflow_ml_batch",
+  "run_ml": true,
+  "ml_model_name": "ctr_logistic_regression",
+  "ml_model_version": "v1"
+}
+```
+
 Airflow UI:
 
 - `http://localhost:8080`
@@ -472,6 +484,8 @@ Main ML objects added:
 - `ml.top_decile_performance`
 - `ml.score_drift_summary`
 - `ml.model_comparison_summary`
+
+The Airflow processing DAG can now orchestrate the canonical ML branch too when `run_ml = true`.
 
 Canonical large-batch ML run:
 

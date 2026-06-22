@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import pickle
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -278,11 +279,9 @@ def main() -> None:
     )
 
     try:
-        import joblib
-
         model_root = ML_MODEL_DIR / args.model_name / args.model_version
         model_root.mkdir(parents=True, exist_ok=True)
-        model_path = model_root / "model.joblib"
+        model_path = model_root / "model.pkl"
         metrics_path = model_root / "metrics.json"
 
         model = build_model(args.alpha)
@@ -314,7 +313,8 @@ def main() -> None:
             },
         }
 
-        joblib.dump(model, model_path)
+        with model_path.open("wb") as handle:
+            pickle.dump(model, handle)
         metrics_path.write_text(json.dumps(metrics_payload, indent=2))
 
         hyperparameters = {"epochs": args.epochs, "chunksize": args.chunksize, "alpha": args.alpha}
@@ -346,7 +346,7 @@ def main() -> None:
             pipeline_run_id=pipeline_run_id,
             artifact_name=f"{args.model_name}_{args.model_version}_model",
             artifact_type="ml_model_artifact",
-            artifact_format="joblib",
+            artifact_format="pickle",
             artifact_path=str(model_path),
             row_count=len(feature_columns),
             artifact_status="READY",

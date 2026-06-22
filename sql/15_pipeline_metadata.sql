@@ -205,9 +205,7 @@ select
 from ranked_batches
 where batch_rank = 1;
 
-drop view if exists ops.pipeline_run_summary;
-
-create view ops.pipeline_run_summary as
+create or replace view ops.pipeline_run_summary as
 select
     runs.pipeline_run_id,
     runs.batch_id,
