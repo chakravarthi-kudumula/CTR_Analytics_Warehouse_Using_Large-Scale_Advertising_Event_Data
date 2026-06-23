@@ -10,6 +10,7 @@ create table if not exists ml.model_feature_importance (
     abs_importance_value numeric(18, 8) not null,
     relative_importance_pct numeric(12, 6),
     importance_direction text not null,
+    interpretation_note text,
     importance_rank integer not null,
     recorded_at timestamptz not null default now(),
     notes text,
@@ -21,6 +22,12 @@ create index if not exists idx_model_feature_importance_run
 
 create index if not exists idx_model_feature_importance_model
     on ml.model_feature_importance (model_name, model_version, abs_importance_value desc);
+
+alter table ml.model_feature_importance
+    add column if not exists interpretation_note text;
+
+drop view if exists ml.latest_feature_group_importance;
+drop view if exists ml.latest_model_feature_importance;
 
 
 create or replace view ml.latest_model_feature_importance as
@@ -43,6 +50,7 @@ select
     mfi.abs_importance_value,
     mfi.relative_importance_pct,
     mfi.importance_direction,
+    mfi.interpretation_note,
     mfi.importance_rank,
     mfi.recorded_at,
     mfi.notes

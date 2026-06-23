@@ -7,6 +7,9 @@ select
     train_batch_name,
     training_scale_band,
     is_canonical_1m_run,
+    is_active_canonical,
+    canonical_promoted_at,
+    canonical_promotion_note,
     rows_trained,
     rows_validated,
     rows_tested,
@@ -106,6 +109,7 @@ select
     abs_importance_value,
     relative_importance_pct,
     importance_direction,
+    interpretation_note,
     importance_rank,
     recorded_at
 from ml.latest_model_feature_importance

@@ -1,3 +1,7 @@
+drop view if exists ml.model_drift_watchlist;
+drop view if exists ml.batch_model_rankings;
+drop view if exists ml.latest_model_monitoring_dashboard;
+
 create or replace view ml.latest_model_monitoring_dashboard as
 with latest_training_run as (
     select distinct on (mcs.model_name, mcs.model_version)
@@ -88,6 +92,9 @@ select
     ltr.test_log_loss,
     ltr.test_precision_at_10pct,
     ltr.test_lift_at_10pct,
+    coalesce(acm.model_id is not null, false) as is_active_canonical,
+    acm.canonical_promoted_at,
+    acm.canonical_promotion_note,
     lsb.batch_id as latest_scored_batch_id,
     lsb.batch_name as latest_scored_batch_name,
     lsb.rows_scored,
@@ -126,6 +133,10 @@ select
     lsb.first_scored_at,
     lsb.last_scored_at
 from latest_training_run ltr
+left join ml.active_canonical_model acm
+  on acm.model_name = ltr.model_name
+ and acm.model_version = ltr.model_version
+ and acm.training_run_id = ltr.training_run_id
 left join latest_scoring_batch lsb
   on lsb.model_name = ltr.model_name
  and lsb.model_version = ltr.model_version

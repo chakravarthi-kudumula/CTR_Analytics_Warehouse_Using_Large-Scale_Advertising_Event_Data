@@ -31,6 +31,7 @@ This page is meant to sit beside the pipeline operations page and answer three q
      - `model_name`
      - `model_version`
      - `train_batch_name`
+     - `is_active_canonical`
      - `validation_roc_auc`
      - `validation_pr_auc`
      - `validation_log_loss`
@@ -71,6 +72,9 @@ This page is meant to sit beside the pipeline operations page and answer three q
      - `abs_importance_value`
    - filters:
      - top `15` by `importance_rank`
+   - tooltip:
+     - `importance_direction`
+     - `interpretation_note`
 
 5. Feature Group Importance Bar Chart
    - source: `ml.latest_feature_group_importance`
@@ -97,3 +101,5 @@ This page is meant to sit beside the pipeline operations page and answer three q
 - `ranking_quality_band = strong` should generally align with `top_decile_lift_vs_batch_ctr >= 2.0`
 - `drift_status = investigate` should be visually emphasized
 - for linear models, `importance_value` is coefficient-based, while `abs_importance_value` is better for ranking
+- positive coefficients mean higher feature values push predicted CTR upward
+- negative coefficients mean higher feature values push predicted CTR downward

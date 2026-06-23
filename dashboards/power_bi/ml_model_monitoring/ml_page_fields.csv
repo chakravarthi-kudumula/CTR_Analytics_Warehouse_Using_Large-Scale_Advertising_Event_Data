@@ -1,7 +1,7 @@
 visual_name,source_view,main_fields,notes
-KPI Cards,ml.latest_model_monitoring_dashboard,"validation_roc_auc; validation_pr_auc; top_decile_lift_vs_batch_ctr; is_canonical_1m_run","Use DAX measures for best values and model counts."
-Model Health Table,ml.latest_model_monitoring_dashboard,"model_name; model_version; train_batch_name; validation_roc_auc; validation_pr_auc; validation_log_loss; top_decile_lift_vs_batch_ctr; validation_quality_band; ranking_quality_band; drift_severity","Primary summary visual."
+KPI Cards,ml.latest_model_monitoring_dashboard,"validation_roc_auc; validation_pr_auc; top_decile_lift_vs_batch_ctr; is_canonical_1m_run; is_active_canonical","Use DAX measures for best values and model counts."
+Model Health Table,ml.latest_model_monitoring_dashboard,"model_name; model_version; train_batch_name; is_active_canonical; validation_roc_auc; validation_pr_auc; validation_log_loss; top_decile_lift_vs_batch_ctr; validation_quality_band; ranking_quality_band; drift_severity","Primary summary visual."
 Batch Ranking Matrix,ml.batch_model_rankings,"batch_name; model_name; model_version; batch_rank_by_lift; batch_rank_by_auc; top_decile_lift_vs_batch_ctr; validation_roc_auc","Compare models within a scored batch."
 Drift Watchlist,ml.model_drift_watchlist,"batch_name; model_name; model_version; previous_batch_name; drift_status; drift_note; top_decile_lift_delta; actual_ctr_delta","Highlight investigate and watch rows."
-Top Feature Importance,ml.latest_model_feature_importance,"feature_name; abs_importance_value; importance_rank; feature_group","Filter to top 15 features."
+Top Feature Importance,ml.latest_model_feature_importance,"feature_name; abs_importance_value; importance_rank; feature_group; importance_direction; interpretation_note","Filter to top 15 features and use interpretation_note as tooltip."
 Feature Group Importance,ml.latest_feature_group_importance,"feature_group; group_relative_importance_pct; total_abs_importance; features_in_group","Show where the model is getting its signal."

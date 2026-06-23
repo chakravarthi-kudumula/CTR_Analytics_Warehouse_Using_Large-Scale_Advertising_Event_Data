@@ -503,6 +503,8 @@ Main ML objects added:
 - `ml.model_feature_importance`
 - `ml.latest_model_feature_importance`
 - `ml.latest_feature_group_importance`
+- `ml.active_canonical_model`
+- `ml.model_promotion_audit`
 
 The project now keeps batch ingestion and ML orchestration separate:
 
@@ -519,6 +521,7 @@ Canonical large-batch ML run:
 - canonical active baseline: `ctr_logistic_regression v3`
 - scalable implementation path: chunked SGD logistic training plus chunked batch scoring with train-derived scaling
 - explainability path: coefficient extraction into `ml.model_feature_importance`
+- promotion path: scheduled candidates are promoted only if they beat the active canonical model on configured metric thresholds
 
 Canonical `1M` validation metrics:
 
@@ -582,9 +585,17 @@ Apply or refresh the ML feature-importance tables and views:
 
 `psql -d ctr_analytics -f sql/26_ml_feature_importance.sql`
 
+Apply or refresh the canonical model-promotion objects:
+
+`psql -d ctr_analytics -f sql/27_ml_model_promotion.sql`
+
 Extract feature importance for the latest trained model version:
 
 `python3 scripts/extract_model_feature_importance.py --model-name ctr_logistic_regression --model-version v3`
+
+Evaluate whether a scheduled candidate should replace the active canonical model:
+
+`python3 scripts/promote_canonical_model.py --model-name ctr_logistic_regression --candidate-version v3_YYYYMMDD`
 
 ## Portfolio Positioning
 

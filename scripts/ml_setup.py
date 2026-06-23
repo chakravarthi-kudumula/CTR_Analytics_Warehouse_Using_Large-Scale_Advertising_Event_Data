@@ -24,8 +24,9 @@ def main() -> None:
     run_psql(sql_dir / "21_ml_schema.sql", args.database, args)
     run_psql(sql_dir / "22_ml_monitoring_views.sql", args.database, args)
     run_psql(sql_dir / "24_ml_model_comparison_summary.sql", args.database, args)
-    run_psql(sql_dir / "25_ml_dashboard_views.sql", args.database, args)
     run_psql(sql_dir / "26_ml_feature_importance.sql", args.database, args)
+    run_psql(sql_dir / "27_ml_model_promotion.sql", args.database, args)
+    run_psql(sql_dir / "25_ml_dashboard_views.sql", args.database, args)
 
     table_count = int(
         run_scalar_query(
@@ -33,7 +34,14 @@ def main() -> None:
             select count(*)
             from information_schema.tables
             where table_schema = 'ml'
-              and table_name in ('model_registry', 'training_runs', 'model_metrics', 'prediction_scores');
+              and table_name in (
+                  'model_registry',
+                  'training_runs',
+                  'model_metrics',
+                  'prediction_scores',
+                  'model_feature_importance',
+                  'model_promotion_audit'
+              );
             """,
             args.database,
             args,
@@ -55,7 +63,8 @@ def main() -> None:
                   'batch_model_rankings',
                   'model_drift_watchlist',
                   'latest_model_feature_importance',
-                  'latest_feature_group_importance'
+                  'latest_feature_group_importance',
+                  'active_canonical_model'
               );
             """,
             args.database,

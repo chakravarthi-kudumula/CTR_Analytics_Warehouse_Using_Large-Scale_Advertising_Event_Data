@@ -119,6 +119,19 @@ with DAG(
         ),
     )
 
+    promote_canonical_model = BashOperator(
+        task_id="promote_canonical_model",
+        execution_timeout=timedelta(minutes=10),
+        bash_command=(
+            "{% set ctx = ti.xcom_pull(task_ids='prepare_ml_context') %}"
+            f"cd {PROJECT_ROOT} && "
+            f"{PYTHON_BIN} scripts/promote_canonical_model.py "
+            "--model-name '{{ ctx['model_name'] }}' "
+            "--candidate-version '{{ ctx['model_version'] }}' "
+            "--triggered-by airflow_ml"
+        ),
+    )
+
     score_ml_batch = BashOperator(
         task_id="score_ml_batch",
         execution_timeout=timedelta(minutes=60),
@@ -146,4 +159,4 @@ with DAG(
         ),
     )
 
-    prepare_ml_context >> setup_ml_foundation >> build_ml_training_dataset >> train_ml_baseline >> extract_model_feature_importance >> score_ml_batch >> capture_ml_benchmarks
+    prepare_ml_context >> setup_ml_foundation >> build_ml_training_dataset >> train_ml_baseline >> extract_model_feature_importance >> score_ml_batch >> promote_canonical_model >> capture_ml_benchmarks

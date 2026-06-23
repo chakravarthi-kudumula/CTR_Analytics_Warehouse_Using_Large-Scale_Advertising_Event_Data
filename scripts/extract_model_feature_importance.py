@@ -118,6 +118,32 @@ def classify_feature_group(feature_name: str) -> str:
     return "other"
 
 
+def build_interpretation_note(feature_name: str, feature_group: str, importance_direction: str) -> str:
+    direction_note = (
+        "Higher values of this feature push predicted CTR upward."
+        if importance_direction == "positive"
+        else "Higher values of this feature push predicted CTR downward."
+        if importance_direction == "negative"
+        else "This feature has a neutral coefficient in the latest fitted model."
+    )
+
+    if feature_group == "bucket_signal":
+        return f"{direction_note} The model is using a bucket-derived historical or encoded signal."
+    if feature_group == "categorical_lift":
+        return f"{direction_note} This categorical lift feature reflects how a hashed value performed relative to baseline CTR."
+    if feature_group == "target_encoding":
+        return f"{direction_note} This encoded categorical feature summarizes historical click behavior for a sparse value."
+    if feature_group == "numeric_log":
+        return f"{direction_note} The model is reacting to the log-scaled magnitude of a numeric input."
+    if feature_group == "support_signal":
+        return f"{direction_note} This support feature reflects how frequently the categorical value appeared historically."
+    if feature_group == "missingness":
+        return f"{direction_note} Missing-value patterns are influencing expected click likelihood."
+    if feature_group == "context":
+        return f"{direction_note} This is a broad context feature rather than a specific sparse identity signal."
+    return direction_note
+
+
 def load_importance_frame(model_context: dict[str, object]):
     import pandas as pd
 
@@ -156,6 +182,14 @@ def load_importance_frame(model_context: dict[str, object]):
         lambda value: "positive" if value > 0 else ("negative" if value < 0 else "neutral")
     )
     frame["feature_group"] = frame["feature_name"].map(classify_feature_group)
+    frame["interpretation_note"] = frame.apply(
+        lambda row: build_interpretation_note(
+            str(row["feature_name"]),
+            str(row["feature_group"]),
+            str(row["importance_direction"]),
+        ),
+        axis=1,
+    )
     frame = frame.sort_values(["abs_importance_value", "feature_name"], ascending=[False, True]).reset_index(drop=True)
     frame["importance_rank"] = frame.index + 1
     return frame
@@ -175,10 +209,11 @@ def upsert_feature_importance(connection, model_context: dict[str, object], impo
             abs_importance_value,
             relative_importance_pct,
             importance_direction,
+            interpretation_note,
             importance_rank,
             notes
         )
-        values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+        values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
     """
     note = f"Feature importance extracted from {model_context['model_name']} {model_context['model_version']}."
     with connection.cursor() as cursor:
@@ -195,6 +230,7 @@ def upsert_feature_importance(connection, model_context: dict[str, object], impo
                 float(row.abs_importance_value),
                 float(row.relative_importance_pct),
                 row.importance_direction,
+                row.interpretation_note,
                 int(row.importance_rank),
                 note,
             )
@@ -232,6 +268,7 @@ def write_artifacts(model_context: dict[str, object], importance_frame, *, top_n
                 "abs_importance_value",
                 "relative_importance_pct",
                 "importance_direction",
+                "interpretation_note",
                 "importance_rank",
             ]
         )
@@ -244,6 +281,7 @@ def write_artifacts(model_context: dict[str, object], importance_frame, *, top_n
                     f"{row.abs_importance_value:.8f}",
                     f"{row.relative_importance_pct:.8f}",
                     row.importance_direction,
+                    row.interpretation_note,
                     row.importance_rank,
                 ]
             )

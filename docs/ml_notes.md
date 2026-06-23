@@ -121,6 +121,11 @@ These make it easier to answer:
 - which scored batches should be investigated for drift
 - which features and feature groups drive the latest trained model
 
+The platform now also supports canonical model promotion:
+- `ml.active_canonical_model` shows which version is currently active
+- `ml.model_promotion_audit` records promotion or rejection decisions
+- scheduled retraining candidates are promoted only if they beat the active canonical model on configured ROC-AUC, PR-AUC, and lift thresholds
+
 ## Why This Step Matters
 
 This step makes the ML extension part of the platform design instead of a future notebook idea.

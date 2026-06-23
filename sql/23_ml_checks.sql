@@ -60,6 +60,14 @@ select 'latest_feature_group_importance_view_exists' as check_name, count(*) as 
 from information_schema.views
 where table_schema = 'ml' and table_name = 'latest_feature_group_importance';
 
+select 'model_promotion_audit_table_exists' as check_name, count(*) as row_count
+from information_schema.tables
+where table_schema = 'ml' and table_name = 'model_promotion_audit';
+
+select 'active_canonical_model_view_exists' as check_name, count(*) as row_count
+from information_schema.views
+where table_schema = 'ml' and table_name = 'active_canonical_model';
+
 select
     tablename as table_name,
     count(*) as indexed_columns
@@ -178,3 +186,26 @@ select
     group_relative_importance_pct
 from ml.latest_feature_group_importance
 order by model_name, model_version, total_abs_importance desc;
+
+select
+    model_name,
+    model_version,
+    training_run_id,
+    validation_roc_auc,
+    validation_pr_auc,
+    validation_lift_at_10pct,
+    canonical_promoted_at,
+    canonical_promotion_note
+from ml.active_canonical_model
+order by canonical_promoted_at desc nulls last;
+
+select
+    model_name,
+    promotion_decision,
+    decision_reason,
+    candidate_training_run_id,
+    previous_training_run_id,
+    created_at
+from ml.model_promotion_audit
+order by created_at desc
+limit 20;
