@@ -21,7 +21,7 @@ from pipeline_tracking import (
 )
 from ml_feature_engineering import apply_feature_engineering, apply_scaler
 from project_config import ML_SCORING_DIR, PROJECT_ROOT, SQL_DIR, add_db_connection_args, ensure_ml_directories
-from score_ctr_batch import assign_score_deciles, build_score_summary, connect, fetch_model_metadata
+from score_ctr_batch import assign_score_deciles, build_score_summary, connect, fetch_model_metadata, predict_ctr_scores
 
 TARGET_COLUMN = "label"
 
@@ -193,11 +193,11 @@ def main() -> None:
                 else:
                     x_chunk = feature_chunk[source_feature_columns].fillna(0)
                 x_chunk = x_chunk.astype("float32")
-                score_chunk = model.predict_proba(x_chunk)[:, 1]
+                score_chunk = predict_ctr_scores(model_bundle, x_chunk)
                 raw_event_ids.extend(feature_chunk["raw_event_id"].astype(int).tolist())
                 batch_ids.extend(feature_chunk["batch_id"].astype(int).tolist())
                 actual_clicks.extend(feature_chunk[TARGET_COLUMN].astype(int).tolist())
-                scores.extend(score_chunk.tolist())
+                scores.extend(list(score_chunk))
 
         prediction_frame = pd.DataFrame(
             {

@@ -129,6 +129,22 @@ def fetch_model_metadata(connection, model_name: str, model_version: str) -> dic
     }
 
 
+def predict_ctr_scores(model_bundle, feature_frame):
+    model = model_bundle["model"] if isinstance(model_bundle, dict) and "model" in model_bundle else model_bundle
+    raw_scores = [float(row[1]) for row in model.predict_proba(feature_frame)]
+
+    if not isinstance(model_bundle, dict) or "calibrator" not in model_bundle:
+        return raw_scores
+
+    calibrator = model_bundle["calibrator"]
+    calibration_method = str(model_bundle.get("calibration_method", "")).lower()
+    if calibration_method == "sigmoid":
+        return [float(row[1]) for row in calibrator.predict_proba([[score] for score in raw_scores])]
+    if calibration_method == "isotonic":
+        return calibrator.predict(raw_scores)
+    return raw_scores
+
+
 def load_feature_frame(connection, batch_id: int, feature_columns: list[str]):
     import pandas as pd
 

@@ -51,23 +51,55 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--epochs", type=int, default=2)
     parser.add_argument("--chunksize", type=int, default=10000)
     parser.add_argument("--alpha", type=float, default=1e-5)
+    parser.add_argument("--penalty", default="l2", choices=["l2", "l1", "elasticnet"])
+    parser.add_argument("--l1-ratio", type=float, default=0.15)
+    parser.add_argument("--learning-rate", default="optimal", choices=["optimal", "constant", "invscaling", "adaptive"])
+    parser.add_argument("--eta0", type=float, default=0.0)
+    parser.add_argument("--power-t", type=float, default=0.5)
+    parser.add_argument("--class-weight", default="none", choices=["none", "balanced"])
+    parser.add_argument("--disable-average", action="store_true")
     parser.add_argument("--bootstrap-metadata", action="store_true")
     parser.add_argument("--triggered-by", default="manual")
     add_db_connection_args(parser)
     return parser.parse_args()
 
 
-def build_model(alpha: float):
+def build_model(
+    *,
+    alpha: float,
+    penalty: str,
+    l1_ratio: float,
+    learning_rate: str,
+    eta0: float,
+    power_t: float,
+    average: bool,
+):
     from sklearn.linear_model import SGDClassifier
 
     return SGDClassifier(
         loss="log_loss",
-        penalty="l2",
+        penalty=penalty,
         alpha=alpha,
-        learning_rate="optimal",
+        l1_ratio=l1_ratio if penalty == "elasticnet" else 0.15,
+        learning_rate=learning_rate,
+        eta0=eta0,
+        power_t=power_t,
         random_state=42,
-        average=True,
+        average=average,
     )
+
+
+def compute_balanced_class_weight_map(targets) -> dict[int, float]:
+    values = [int(value) for value in targets]
+    total = len(values)
+    positives = sum(values)
+    negatives = total - positives
+    if total == 0 or positives == 0 or negatives == 0:
+        return {0: 1.0, 1: 1.0}
+    return {
+        0: total / (2.0 * negatives),
+        1: total / (2.0 * positives),
+    }
 
 
 def build_scaler_bundle(train_csv: Path, source_feature_columns: list[str], *, encoding_bundle: dict[str, object], chunksize: int):
@@ -95,6 +127,7 @@ def train_chunked_model(
     scaler_bundle: dict[str, object],
     epochs: int,
     chunksize: int,
+    class_weight_map: dict[int, float] | None = None,
 ) -> int:
     import pandas as pd
 
@@ -106,10 +139,13 @@ def train_chunked_model(
             y_chunk = chunk[TARGET_COLUMN].astype(int)
             x_chunk, _ = apply_feature_engineering(chunk[source_feature_columns], encoding_bundle=encoding_bundle)
             x_chunk = apply_scaler(x_chunk, scaler_bundle)
+            sample_weight = None
+            if class_weight_map:
+                sample_weight = y_chunk.map(lambda value: class_weight_map.get(int(value), 1.0)).astype("float32")
             if total_rows == 0 and epoch == 0:
-                model.partial_fit(x_chunk, y_chunk, classes=classes)
+                model.partial_fit(x_chunk, y_chunk, classes=classes, sample_weight=sample_weight)
             else:
-                model.partial_fit(x_chunk, y_chunk)
+                model.partial_fit(x_chunk, y_chunk, sample_weight=sample_weight)
             total_rows += len(chunk) if epoch == 0 else 0
     return total_rows
 
@@ -351,7 +387,20 @@ def main() -> None:
         model_path = model_root / "model.pkl"
         metrics_path = model_root / "metrics.json"
 
-        model = build_model(args.alpha)
+        model = build_model(
+            alpha=args.alpha,
+            penalty=args.penalty,
+            l1_ratio=args.l1_ratio,
+            learning_rate=args.learning_rate,
+            eta0=args.eta0,
+            power_t=args.power_t,
+            average=not args.disable_average,
+        )
+        class_weight_map = (
+            compute_balanced_class_weight_map(load_training_frame(dataset_dir, source_feature_columns)[TARGET_COLUMN])
+            if args.class_weight == "balanced"
+            else None
+        )
         train_rows = train_chunked_model(
             model,
             dataset_dir / "train.csv",
@@ -360,6 +409,7 @@ def main() -> None:
             scaler_bundle=scaler_bundle,
             epochs=args.epochs,
             chunksize=args.chunksize,
+            class_weight_map=class_weight_map,
         )
 
         validation_y = validation_df[TARGET_COLUMN].astype(int)
@@ -397,6 +447,13 @@ def main() -> None:
             "epochs": args.epochs,
             "chunksize": args.chunksize,
             "alpha": args.alpha,
+            "penalty": args.penalty,
+            "l1_ratio": args.l1_ratio,
+            "learning_rate": args.learning_rate,
+            "eta0": args.eta0,
+            "power_t": args.power_t,
+            "class_weight": args.class_weight,
+            "average": not args.disable_average,
             "feature_engineering_version": encoding_bundle["version"],
         }
         with connect(args) as connection:

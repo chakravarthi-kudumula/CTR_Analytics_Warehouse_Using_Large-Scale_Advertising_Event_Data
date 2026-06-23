@@ -68,6 +68,32 @@ class ScoreCtrBatchTests(unittest.TestCase):
         self.assertAlmostEqual(summary["actual_ctr"], 0.5)
         self.assertAlmostEqual(summary["top_decile_actual_ctr"], 1.0)
 
+    def test_predict_ctr_scores_uses_sigmoid_calibrator_when_present(self) -> None:
+        class FakeModel:
+            def predict_proba(self, feature_frame):
+                return [[0.4, 0.6], [0.3, 0.7]]
+
+        class FakeCalibrator:
+            def predict_proba(self, raw_scores):
+                self.last_input = list(raw_scores)
+                return [[0.7, 0.3], [0.2, 0.8]]
+
+        bundle = {
+            "model": FakeModel(),
+            "calibrator": FakeCalibrator(),
+            "calibration_method": "sigmoid",
+        }
+        scores = score_ctr_batch.predict_ctr_scores(bundle, object())
+        self.assertEqual(list(scores), [0.3, 0.8])
+
+    def test_predict_ctr_scores_falls_back_to_raw_model_scores(self) -> None:
+        class FakeModel:
+            def predict_proba(self, feature_frame):
+                return [[0.1, 0.9], [0.6, 0.4]]
+
+        scores = score_ctr_batch.predict_ctr_scores({"model": FakeModel()}, object())
+        self.assertEqual(list(scores), [0.9, 0.4])
+
 
 if __name__ == "__main__":
     unittest.main()
