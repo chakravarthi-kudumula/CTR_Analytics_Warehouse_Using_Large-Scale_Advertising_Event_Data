@@ -48,6 +48,18 @@ select 'model_drift_watchlist_view_exists' as check_name, count(*) as row_count
 from information_schema.views
 where table_schema = 'ml' and table_name = 'model_drift_watchlist';
 
+select 'model_feature_importance_table_exists' as check_name, count(*) as row_count
+from information_schema.tables
+where table_schema = 'ml' and table_name = 'model_feature_importance';
+
+select 'latest_model_feature_importance_view_exists' as check_name, count(*) as row_count
+from information_schema.views
+where table_schema = 'ml' and table_name = 'latest_model_feature_importance';
+
+select 'latest_feature_group_importance_view_exists' as check_name, count(*) as row_count
+from information_schema.views
+where table_schema = 'ml' and table_name = 'latest_feature_group_importance';
+
 select
     tablename as table_name,
     count(*) as indexed_columns
@@ -142,3 +154,27 @@ select
     actual_ctr_delta
 from ml.model_drift_watchlist
 order by batch_id desc, model_name, model_version;
+
+select
+    model_name,
+    model_version,
+    training_run_id,
+    importance_rank,
+    feature_name,
+    feature_group,
+    importance_value,
+    relative_importance_pct
+from ml.latest_model_feature_importance
+order by model_name, model_version, importance_rank
+limit 25;
+
+select
+    model_name,
+    model_version,
+    training_run_id,
+    feature_group,
+    features_in_group,
+    total_abs_importance,
+    group_relative_importance_pct
+from ml.latest_feature_group_importance
+order by model_name, model_version, total_abs_importance desc;

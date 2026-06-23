@@ -22,8 +22,13 @@ ML_DIR = DATA_DIR / "ml"
 ML_TRAINING_DATASET_DIR = ML_DIR / "training_datasets"
 ML_MODEL_DIR = ML_DIR / "models"
 ML_SCORING_DIR = ML_DIR / "scoring"
+ML_REPORT_DIR = ML_DIR / "reports"
 SQL_DIR = PROJECT_ROOT / "sql"
 SPARK_JOBS_DIR = PROJECT_ROOT / "spark_jobs"
+ML_CANONICAL_BATCH_NAME = os.getenv("ML_CANONICAL_BATCH_NAME", "criteo_1m_ml_canonical_batch")
+ML_DEFAULT_MODEL_NAME = os.getenv("ML_DEFAULT_MODEL_NAME", "ctr_logistic_regression")
+ML_DEFAULT_MODEL_BASE_VERSION = os.getenv("ML_DEFAULT_MODEL_BASE_VERSION", "v3")
+ML_RETRAIN_SCHEDULE = os.getenv("ML_RETRAIN_SCHEDULE", "30 3 * * 0")
 
 DEFAULT_DB_HOST = os.getenv("PGHOST")
 DEFAULT_DB_PORT = os.getenv("PGPORT", "5432")
@@ -67,4 +72,5 @@ def ensure_ml_directories() -> Path:
     ML_TRAINING_DATASET_DIR.mkdir(parents=True, exist_ok=True)
     ML_MODEL_DIR.mkdir(parents=True, exist_ok=True)
     ML_SCORING_DIR.mkdir(parents=True, exist_ok=True)
+    ML_REPORT_DIR.mkdir(parents=True, exist_ok=True)
     return ML_TRAINING_DATASET_DIR

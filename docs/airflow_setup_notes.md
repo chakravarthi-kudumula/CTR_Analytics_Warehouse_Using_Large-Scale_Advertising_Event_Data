@@ -113,6 +113,14 @@ It expects:
 - optional `ml_chunksize`
 - optional `ml_epochs`
 
+Default scheduled retraining strategy:
+
+- schedule: `30 3 * * 0`
+- target batch: `criteo_1m_ml_canonical_batch`
+- default model family: `ctr_logistic_regression`
+- default manual model version: `v3`
+- default scheduled model version pattern: `v3_YYYYMMDD`
+
 Example ML DAG config:
 
 ```json
@@ -129,8 +137,9 @@ This DAG runs:
 1. `scripts/ml_setup.py`
 2. `scripts/ml_training_dataset.py`
 3. `scripts/train_ctr_sgd.py`
-4. `scripts/score_ctr_batch_chunked.py`
-5. `scripts/benchmark_capture.py`
+4. `scripts/extract_model_feature_importance.py`
+5. `scripts/score_ctr_batch_chunked.py`
+6. `scripts/benchmark_capture.py`
 
 Why it is separate:
 

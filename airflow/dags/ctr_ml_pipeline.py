@@ -13,18 +13,31 @@ SCRIPTS_DIR = f"{PROJECT_ROOT}/scripts"
 if SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, SCRIPTS_DIR)
 
+from project_config import (
+    ML_CANONICAL_BATCH_NAME,
+    ML_DEFAULT_MODEL_BASE_VERSION,
+    ML_DEFAULT_MODEL_NAME,
+    ML_RETRAIN_SCHEDULE,
+)
+
 
 def validate_ml_run_config(**context):
     dag_run = context.get("dag_run")
     conf = dag_run.conf if dag_run and dag_run.conf else {}
-    batch_name = conf.get("batch_name")
-    if not batch_name:
-        raise ValueError("batch_name is required for ctr_ml_pipeline runs.")
+    logical_date = context.get("logical_date") or datetime.utcnow()
+    batch_name = conf.get("batch_name") or ML_CANONICAL_BATCH_NAME
+    explicit_model_version = conf.get("ml_model_version")
+    if explicit_model_version:
+        model_version = explicit_model_version
+    elif dag_run and dag_run.run_type == "scheduled":
+        model_version = f"{ML_DEFAULT_MODEL_BASE_VERSION}_{logical_date.strftime('%Y%m%d')}"
+    else:
+        model_version = ML_DEFAULT_MODEL_BASE_VERSION
     return {
         "batch_name": batch_name,
         "dataset_name": conf.get("ml_dataset_name") or f"ml_training_dataset_{batch_name}",
-        "model_name": conf.get("ml_model_name", "ctr_logistic_regression"),
-        "model_version": conf.get("ml_model_version", "v3"),
+        "model_name": conf.get("ml_model_name", ML_DEFAULT_MODEL_NAME),
+        "model_version": model_version,
         "chunksize": int(conf.get("ml_chunksize", 10000)),
         "epochs": int(conf.get("ml_epochs", 2)),
     }
@@ -43,11 +56,11 @@ with DAG(
     dag_id="ctr_ml_pipeline",
     description="Dedicated ML orchestration for CTR training datasets, training, scoring, and monitoring.",
     start_date=datetime(2026, 1, 1),
-    schedule=None,
+    schedule=ML_RETRAIN_SCHEDULE,
     catchup=False,
     max_active_runs=1,
     default_args=DEFAULT_ARGS,
-    tags=["ctr", "ml", "airflow", "training", "scoring"],
+    tags=["ctr", "ml", "airflow", "training", "scoring", "retraining"],
 ) as dag:
     prepare_ml_context = PythonOperator(
         task_id="prepare_ml_context",
@@ -93,6 +106,19 @@ with DAG(
         ),
     )
 
+    extract_model_feature_importance = BashOperator(
+        task_id="extract_model_feature_importance",
+        execution_timeout=timedelta(minutes=20),
+        bash_command=(
+            "{% set ctx = ti.xcom_pull(task_ids='prepare_ml_context') %}"
+            f"cd {PROJECT_ROOT} && "
+            f"{PYTHON_BIN} scripts/extract_model_feature_importance.py "
+            "--model-name '{{ ctx['model_name'] }}' "
+            "--model-version '{{ ctx['model_version'] }}' "
+            "--triggered-by airflow_ml"
+        ),
+    )
+
     score_ml_batch = BashOperator(
         task_id="score_ml_batch",
         execution_timeout=timedelta(minutes=60),
@@ -120,4 +146,4 @@ with DAG(
         ),
     )
 
-    prepare_ml_context >> setup_ml_foundation >> build_ml_training_dataset >> train_ml_baseline >> score_ml_batch >> capture_ml_benchmarks
+    prepare_ml_context >> setup_ml_foundation >> build_ml_training_dataset >> train_ml_baseline >> extract_model_feature_importance >> score_ml_batch >> capture_ml_benchmarks

@@ -112,11 +112,14 @@ New dashboard-ready ML monitoring views now expose:
 - `ml.latest_model_monitoring_dashboard`
 - `ml.batch_model_rankings`
 - `ml.model_drift_watchlist`
+- `ml.latest_model_feature_importance`
+- `ml.latest_feature_group_importance`
 
 These make it easier to answer:
 - what is the latest quality level of each model version
 - which model ranked best for a scored batch
 - which scored batches should be investigated for drift
+- which features and feature groups drive the latest trained model
 
 ## Why This Step Matters
 

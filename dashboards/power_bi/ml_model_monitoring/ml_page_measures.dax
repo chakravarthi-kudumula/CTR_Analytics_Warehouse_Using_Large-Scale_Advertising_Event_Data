@@ -1,0 +1,23 @@
+Best Validation ROC AUC =
+MAX ( latest_model_monitoring_dashboard[validation_roc_auc] )
+
+Best Validation PR AUC =
+MAX ( latest_model_monitoring_dashboard[validation_pr_auc] )
+
+Best Top Decile Lift =
+MAX ( latest_model_monitoring_dashboard[top_decile_lift_vs_batch_ctr] )
+
+Canonical Model Count =
+CALCULATE (
+    COUNTROWS ( latest_model_monitoring_dashboard ),
+    latest_model_monitoring_dashboard[is_canonical_1m_run] = TRUE ()
+)
+
+Investigate Drift Count =
+CALCULATE (
+    COUNTROWS ( model_drift_watchlist ),
+    model_drift_watchlist[drift_status] = "investigate"
+)
+
+Top Feature Relative Importance Pct =
+SUM ( latest_model_feature_importance[relative_importance_pct] )

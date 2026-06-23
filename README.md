@@ -478,9 +478,13 @@ Core files:
 - `scripts/train_ctr_sgd.py`
 - `scripts/train_ctr_xgboost.py`
 - `scripts/score_ctr_batch_chunked.py`
+- `scripts/extract_model_feature_importance.py`
 - `sql/22_ml_monitoring_views.sql`
+- `sql/25_ml_dashboard_views.sql`
+- `sql/26_ml_feature_importance.sql`
 - `docs/ml_extension_workflow.md`
 - `docs/ml_notes.md`
+- `docs/power_bi_ml_page_spec.md`
 
 Main ML objects added:
 
@@ -496,6 +500,9 @@ Main ML objects added:
 - `ml.latest_model_monitoring_dashboard`
 - `ml.batch_model_rankings`
 - `ml.model_drift_watchlist`
+- `ml.model_feature_importance`
+- `ml.latest_model_feature_importance`
+- `ml.latest_feature_group_importance`
 
 The project now keeps batch ingestion and ML orchestration separate:
 
@@ -511,6 +518,7 @@ Canonical large-batch ML run:
 - test rows: `142,857`
 - canonical active baseline: `ctr_logistic_regression v3`
 - scalable implementation path: chunked SGD logistic training plus chunked batch scoring with train-derived scaling
+- explainability path: coefficient extraction into `ml.model_feature_importance`
 
 Canonical `1M` validation metrics:
 
@@ -569,6 +577,14 @@ Apply or refresh the ML comparison summary view:
 Apply or refresh the ML dashboard and watchlist views:
 
 `psql -d ctr_analytics -f sql/25_ml_dashboard_views.sql`
+
+Apply or refresh the ML feature-importance tables and views:
+
+`psql -d ctr_analytics -f sql/26_ml_feature_importance.sql`
+
+Extract feature importance for the latest trained model version:
+
+`python3 scripts/extract_model_feature_importance.py --model-name ctr_logistic_regression --model-version v3`
 
 ## Portfolio Positioning
 
