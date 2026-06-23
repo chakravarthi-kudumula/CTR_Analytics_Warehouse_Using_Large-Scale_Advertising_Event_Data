@@ -28,7 +28,6 @@ from project_config import (
     ensure_ml_directories,
 )
 from train_ctr_baseline import (
-    HIGH_CARDINALITY_RAW_CATEGORICAL_COLUMNS,
     TARGET_COLUMN,
     connect,
     evaluate_split,
@@ -53,6 +52,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--colsample-bytree", type=float, default=0.80)
     parser.add_argument("--min-child-weight", type=float, default=1.0)
     parser.add_argument("--reg-lambda", type=float, default=1.0)
+    parser.add_argument("--bootstrap-metadata", action="store_true")
     parser.add_argument("--triggered-by", default="manual")
     add_db_connection_args(parser)
     return parser.parse_args()
@@ -286,7 +286,8 @@ def upsert_model_metrics(connection, training_run_id: int, split_name: str, metr
 
 def main() -> None:
     args = parse_args()
-    ensure_pipeline_metadata(SQL_DIR, args.database, args)
+    if args.bootstrap_metadata:
+        ensure_pipeline_metadata(SQL_DIR, args.database, args)
     ensure_ml_directories()
 
     batch_id, source_file = resolve_batch_context(

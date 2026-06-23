@@ -28,11 +28,9 @@ from project_config import (
     add_db_connection_args,
     ensure_ml_directories,
 )
+from ml_feature_engineering import DROP_COLUMNS, RAW_CATEGORICAL_COLUMNS, select_source_feature_columns
 
 TARGET_COLUMN = "label"
-DROP_COLUMNS = {"dataset_split", "raw_event_id", "batch_id", "click_flag", "impression_count", "click_count"}
-HIGH_CARDINALITY_RAW_CATEGORICAL_COLUMNS = {"c1", "c6", "c19", "c20", "c22", "c25", "c26"}
-TEXT_ENGINEERED_COLUMNS = {"event_batch"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -43,6 +41,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model-version", default="v1")
     parser.add_argument("--max-iter", type=int, default=500)
     parser.add_argument("--class-weight", default="balanced")
+    parser.add_argument("--bootstrap-metadata", action="store_true")
     parser.add_argument("--triggered-by", default="manual")
     add_db_connection_args(parser)
     return parser.parse_args()
@@ -80,13 +79,7 @@ def feature_columns_from_manifest(manifest: dict[str, object]) -> list[str]:
 
 
 def select_training_feature_columns(feature_columns: list[str]) -> list[str]:
-    return [
-        column
-        for column in feature_columns
-        if column not in HIGH_CARDINALITY_RAW_CATEGORICAL_COLUMNS
-        and column not in TEXT_ENGINEERED_COLUMNS
-        and not column.endswith("_bucket_code")
-    ]
+    return select_source_feature_columns(feature_columns)
 
 
 def _non_null_values(values) -> list[object]:
@@ -101,6 +94,9 @@ def split_feature_types(frame, feature_columns: list[str]) -> tuple[list[str], l
     for column_name in feature_columns:
         has_column = column_name in getattr(frame, "columns", frame)
         if not has_column:
+            continue
+        if column_name in RAW_CATEGORICAL_COLUMNS or column_name.endswith("_bucket_code"):
+            categorical_columns.append(column_name)
             continue
         values = _non_null_values(frame[column_name])
         sample_value = values[0] if values else None
@@ -345,7 +341,8 @@ def upsert_model_metrics(connection, training_run_id: int, split_name: str, metr
 
 def main() -> None:
     args = parse_args()
-    ensure_pipeline_metadata(SQL_DIR, args.database, args)
+    if args.bootstrap_metadata:
+        ensure_pipeline_metadata(SQL_DIR, args.database, args)
     ensure_ml_directories()
 
     batch_id, source_file = resolve_batch_context(

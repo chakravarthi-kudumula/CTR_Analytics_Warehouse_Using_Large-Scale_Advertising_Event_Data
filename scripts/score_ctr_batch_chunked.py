@@ -19,6 +19,7 @@ from pipeline_tracking import (
     register_batch_artifact,
     resolve_batch_context,
 )
+from ml_feature_engineering import apply_feature_engineering, apply_scaler
 from project_config import ML_SCORING_DIR, PROJECT_ROOT, SQL_DIR, add_db_connection_args, ensure_ml_directories
 from score_ctr_batch import assign_score_deciles, build_score_summary, connect, fetch_model_metadata
 
@@ -30,7 +31,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch-name")
     parser.add_argument("--model-name", default="ctr_sgd_logistic")
     parser.add_argument("--model-version", default="v1")
-    parser.add_argument("--chunksize", type=int, default=50000)
+    parser.add_argument("--chunksize", type=int, default=10000)
+    parser.add_argument("--bootstrap-metadata", action="store_true")
     parser.add_argument("--triggered-by", default="manual")
     add_db_connection_args(parser)
     return parser.parse_args()
@@ -117,7 +119,8 @@ def upsert_prediction_scores_chunked(
 
 def main() -> None:
     args = parse_args()
-    ensure_pipeline_metadata(SQL_DIR, args.database, args)
+    if args.bootstrap_metadata:
+        ensure_pipeline_metadata(SQL_DIR, args.database, args)
     ensure_ml_directories()
 
     batch_id, source_file = resolve_batch_context(
@@ -156,7 +159,17 @@ def main() -> None:
             model_metadata = fetch_model_metadata(connection, args.model_name, args.model_version)
 
         with open(model_metadata["artifact_path"], "rb") as handle:
-            model = pickle.load(handle)
+            model_bundle = pickle.load(handle)
+        if isinstance(model_bundle, dict) and "model" in model_bundle:
+            model = model_bundle["model"]
+            encoding_bundle = model_bundle.get("encoding_bundle")
+            scaler_bundle = model_bundle.get("scaler_bundle")
+            source_feature_columns = model_bundle.get("source_feature_columns", model_metadata["feature_columns"])
+        else:
+            model = model_bundle
+            encoding_bundle = None
+            scaler_bundle = None
+            source_feature_columns = model_metadata["feature_columns"]
 
         raw_event_ids: list[int] = []
         batch_ids: list[int] = []
@@ -167,10 +180,19 @@ def main() -> None:
             for feature_chunk in iter_feature_chunks(
                 connection,
                 batch_id,
-                model_metadata["feature_columns"],
+                source_feature_columns,
                 chunksize=args.chunksize,
             ):
-                x_chunk = feature_chunk[model_metadata["feature_columns"]].fillna(0)
+                if encoding_bundle:
+                    x_chunk, _ = apply_feature_engineering(
+                        feature_chunk[source_feature_columns],
+                        encoding_bundle=encoding_bundle,
+                    )
+                    if scaler_bundle:
+                        x_chunk = apply_scaler(x_chunk, scaler_bundle)
+                else:
+                    x_chunk = feature_chunk[source_feature_columns].fillna(0)
+                x_chunk = x_chunk.astype("float32")
                 score_chunk = model.predict_proba(x_chunk)[:, 1]
                 raw_event_ids.extend(feature_chunk["raw_event_id"].astype(int).tolist())
                 batch_ids.extend(feature_chunk["batch_id"].astype(int).tolist())

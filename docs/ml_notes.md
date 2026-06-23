@@ -76,23 +76,23 @@ The earlier `120`-row and other tiny incoming-batch experiments still exist in m
 
 ### Current canonical Logistic Regression result
 
-The canonical `ctr_logistic_regression v1` result is now backed by the `1M` batch through a chunked SGD-based logistic training path.
+The canonical `ctr_logistic_regression v3` result is now backed by the `1M` batch through a chunked SGD-based logistic training path with shared feature engineering and train-derived scaling.
 
 Current metrics:
 
-- validation ROC-AUC: `0.516458`
-- validation PR-AUC: `0.264343`
-- validation log loss: `10.763619`
-- validation precision@10%: `0.317934`
-- validation lift@10%: `1.238589`
+- validation ROC-AUC: `0.710239`
+- validation PR-AUC: `0.398863`
+- validation log loss: `6.521392`
+- validation precision@10%: `0.435111`
+- validation lift@10%: `1.695083`
 
 Current scored output:
 
 - scored rows: `1,000,000`
-- average predicted CTR: `0.107596`
+- average predicted CTR: `0.511890`
 - batch actual CTR: `0.256223`
-- top decile actual CTR: `0.310640`
-- top decile lift vs batch CTR: `1.212381`
+- top decile actual CTR: `0.561030`
+- top decile lift vs batch CTR: `2.189616`
 
 ### How to interpret earlier small-batch experiments
 
@@ -107,6 +107,16 @@ Use `ml.model_comparison_summary` to distinguish:
 - `small_scale` prototype runs
 - the canonical `1M` logistic run
 - later experimental model runs such as `ctr_xgboost`
+
+New dashboard-ready ML monitoring views now expose:
+- `ml.latest_model_monitoring_dashboard`
+- `ml.batch_model_rankings`
+- `ml.model_drift_watchlist`
+
+These make it easier to answer:
+- what is the latest quality level of each model version
+- which model ranked best for a scored batch
+- which scored batches should be investigated for drift
 
 ## Why This Step Matters
 

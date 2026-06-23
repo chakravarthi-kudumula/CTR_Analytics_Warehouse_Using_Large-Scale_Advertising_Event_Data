@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import pickle
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -36,6 +37,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch-name")
     parser.add_argument("--model-name", default="ctr_logistic_regression")
     parser.add_argument("--model-version", default="v1")
+    parser.add_argument("--bootstrap-metadata", action="store_true")
     parser.add_argument("--triggered-by", default="manual")
     add_db_connection_args(parser)
     return parser.parse_args()
@@ -195,7 +197,8 @@ def upsert_prediction_scores(connection, prediction_frame, model_id: int, traini
 
 def main() -> None:
     args = parse_args()
-    ensure_pipeline_metadata(SQL_DIR, args.database, args)
+    if args.bootstrap_metadata:
+        ensure_pipeline_metadata(SQL_DIR, args.database, args)
     ensure_ml_directories()
 
     batch_id, source_file = resolve_batch_context(
@@ -228,7 +231,6 @@ def main() -> None:
     )
 
     try:
-        import joblib
         import pandas as pd
 
         with connect(args) as connection:
@@ -238,7 +240,15 @@ def main() -> None:
         if feature_frame.empty:
             raise ValueError(f"No feature store rows found for batch {batch_name}")
 
-        model = joblib.load(model_metadata["artifact_path"])
+        artifact_path = Path(model_metadata["artifact_path"])
+        if artifact_path.suffix == ".pkl":
+            with artifact_path.open("rb") as handle:
+                bundle = pickle.load(handle)
+            model = bundle["model"] if isinstance(bundle, dict) and "model" in bundle else bundle
+        else:
+            import joblib
+
+            model = joblib.load(artifact_path)
         scored_probabilities = model.predict_proba(feature_frame[model_metadata["feature_columns"]])[:, 1]
         deciles = assign_score_deciles(scored_probabilities)
 

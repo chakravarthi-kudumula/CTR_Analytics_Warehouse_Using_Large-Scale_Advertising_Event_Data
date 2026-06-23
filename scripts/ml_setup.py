@@ -24,6 +24,7 @@ def main() -> None:
     run_psql(sql_dir / "21_ml_schema.sql", args.database, args)
     run_psql(sql_dir / "22_ml_monitoring_views.sql", args.database, args)
     run_psql(sql_dir / "24_ml_model_comparison_summary.sql", args.database, args)
+    run_psql(sql_dir / "25_ml_dashboard_views.sql", args.database, args)
 
     table_count = int(
         run_scalar_query(
@@ -48,7 +49,10 @@ def main() -> None:
                   'score_decile_performance',
                   'top_decile_performance',
                   'score_drift_summary',
-                  'model_comparison_summary'
+                  'model_comparison_summary',
+                  'latest_model_monitoring_dashboard',
+                  'batch_model_rankings',
+                  'model_drift_watchlist'
               );
             """,
             args.database,

@@ -84,45 +84,59 @@ Default admin user created by init:
 
 ## DAG Run Parameters
 
-The first DAG supports:
+`ctr_batch_pipeline` supports:
 
 - `sample`
 - `batch_name`
-- `run_ml`
-- `ml_model_name`
-- `ml_model_version`
-- `ml_dataset_name`
 
 Example Airflow run config:
 
 ```json
 {
   "sample": "1m",
-  "batch_name": "criteo_1m_airflow_batch",
-  "run_ml": true,
-  "ml_model_name": "ctr_logistic_regression",
-  "ml_model_version": "v1"
+  "batch_name": "criteo_1m_airflow_batch"
 }
 ```
 
-### Optional ML Branch
+## Dedicated ML DAG
 
-The main processing DAG now includes an opt-in ML branch.
+The project now uses a separate ML DAG:
 
-When `run_ml` is `true`, the DAG also runs:
+- `ctr_ml_pipeline`
+
+It expects:
+
+- `batch_name`
+- optional `ml_dataset_name`
+- optional `ml_model_name`
+- optional `ml_model_version`
+- optional `ml_chunksize`
+- optional `ml_epochs`
+
+Example ML DAG config:
+
+```json
+{
+  "batch_name": "criteo_1m_ml_canonical_batch",
+  "ml_model_name": "ctr_logistic_regression",
+  "ml_model_version": "v3",
+  "ml_chunksize": 10000
+}
+```
+
+This DAG runs:
 
 1. `scripts/ml_setup.py`
 2. `scripts/ml_training_dataset.py`
 3. `scripts/train_ctr_sgd.py`
 4. `scripts/score_ctr_batch_chunked.py`
+5. `scripts/benchmark_capture.py`
 
-This is intentionally opt-in so small incoming production-style batches do not retrain models automatically.
+Why it is separate:
 
-Recommended use:
-
-- keep `run_ml` off for normal incoming-file ingestion
-- turn `run_ml` on for canonical sample runs, controlled backfills, or explicit ML refreshes
-- use `sample = 1m` plus `run_ml = true` when you want the full canonical ML path through Airflow
+- incoming production-style batches should not retrain models automatically
+- the main pipeline stays focused on ingestion and analytics serving
+- ML refreshes can be scheduled or triggered independently on canonical batches and controlled experiments
 
 ## Sensor-Based Intake
 

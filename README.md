@@ -252,6 +252,7 @@ Core files:
 
 - `airflow/Dockerfile`
 - `airflow/dags/ctr_batch_pipeline.py`
+- `airflow/dags/ctr_ml_pipeline.py`
 - `airflow/dags/ctr_incoming_file_sensor.py`
 - `docs/airflow_setup_notes.md`
 
@@ -261,15 +262,23 @@ Start Airflow:
 
 `docker compose up -d airflow-webserver airflow-scheduler`
 
-Trigger the canonical ML path through Airflow with a manual DAG config like:
+Trigger the main batch-processing DAG manually with config like:
 
 ```json
 {
   "sample": "1m",
-  "batch_name": "criteo_1m_airflow_ml_batch",
-  "run_ml": true,
+  "batch_name": "criteo_1m_airflow_batch"
+}
+```
+
+Trigger the dedicated ML DAG manually with config like:
+
+```json
+{
+  "batch_name": "criteo_1m_ml_canonical_batch",
   "ml_model_name": "ctr_logistic_regression",
-  "ml_model_version": "v1"
+  "ml_model_version": "v3",
+  "ml_chunksize": 10000
 }
 ```
 
@@ -484,8 +493,14 @@ Main ML objects added:
 - `ml.top_decile_performance`
 - `ml.score_drift_summary`
 - `ml.model_comparison_summary`
+- `ml.latest_model_monitoring_dashboard`
+- `ml.batch_model_rankings`
+- `ml.model_drift_watchlist`
 
-The Airflow processing DAG can now orchestrate the canonical ML branch too when `run_ml = true`.
+The project now keeps batch ingestion and ML orchestration separate:
+
+- `ctr_batch_pipeline` handles ingestion, Spark, warehouse, marts, feature store, quality, and benchmark capture
+- `ctr_ml_pipeline` handles ML setup, dataset extraction, training, scoring, and benchmark capture
 
 Canonical large-batch ML run:
 
@@ -494,24 +509,24 @@ Canonical large-batch ML run:
 - train rows: `714,286`
 - validation rows: `142,857`
 - test rows: `142,857`
-- canonical active baseline: `ctr_logistic_regression v1`
-- scalable implementation path: chunked SGD logistic training plus chunked batch scoring
+- canonical active baseline: `ctr_logistic_regression v3`
+- scalable implementation path: chunked SGD logistic training plus chunked batch scoring with train-derived scaling
 
 Canonical `1M` validation metrics:
 
-- ROC-AUC: `0.516458`
-- PR-AUC: `0.264343`
-- log loss: `10.763619`
-- precision@10%: `0.317934`
-- lift@10%: `1.238589`
+- ROC-AUC: `0.710239`
+- PR-AUC: `0.398863`
+- log loss: `6.521392`
+- precision@10%: `0.435111`
+- lift@10%: `1.695083`
 
 Canonical `1M` scoring summary:
 
 - scored rows: `1,000,000`
-- average predicted CTR: `0.107596`
+- average predicted CTR: `0.511890`
 - batch actual CTR: `0.256223`
-- top decile actual CTR: `0.310640`
-- top decile lift vs batch CTR: `1.212381`
+- top decile actual CTR: `0.561030`
+- top decile lift vs batch CTR: `2.189616`
 
 The earlier tiny incoming-batch experiments remain in the metadata layer for comparison, but they are no longer the main ML claim. The canonical ML story is now the `1M` run above, while small-batch runs are treated as early prototype experiments and are exposed through `ml.model_comparison_summary`.
 
@@ -550,6 +565,10 @@ Apply or refresh the ML monitoring views:
 Apply or refresh the ML comparison summary view:
 
 `psql -d ctr_analytics -f sql/24_ml_model_comparison_summary.sql`
+
+Apply or refresh the ML dashboard and watchlist views:
+
+`psql -d ctr_analytics -f sql/25_ml_dashboard_views.sql`
 
 ## Portfolio Positioning
 

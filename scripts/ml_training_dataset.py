@@ -34,6 +34,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--train-days", default="1,2,3,4,5")
     parser.add_argument("--validation-days", default="6")
     parser.add_argument("--test-days", default="7")
+    parser.add_argument("--bootstrap-metadata", action="store_true")
     parser.add_argument("--triggered-by", default="manual")
     add_db_connection_args(parser)
     return parser.parse_args()
@@ -191,7 +192,8 @@ def main() -> None:
     validate_splits(train_days, validation_days, test_days)
     split_lookup = build_split_lookup(train_days, validation_days, test_days)
 
-    ensure_pipeline_metadata(SQL_DIR, args.database, args)
+    if args.bootstrap_metadata:
+        ensure_pipeline_metadata(SQL_DIR, args.database, args)
     training_root = ensure_ml_directories()
 
     batch_id, source_file = resolve_batch_context(

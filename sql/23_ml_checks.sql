@@ -36,6 +36,18 @@ select 'model_comparison_summary_view_exists' as check_name, count(*) as row_cou
 from information_schema.views
 where table_schema = 'ml' and table_name = 'model_comparison_summary';
 
+select 'latest_model_monitoring_dashboard_view_exists' as check_name, count(*) as row_count
+from information_schema.views
+where table_schema = 'ml' and table_name = 'latest_model_monitoring_dashboard';
+
+select 'batch_model_rankings_view_exists' as check_name, count(*) as row_count
+from information_schema.views
+where table_schema = 'ml' and table_name = 'batch_model_rankings';
+
+select 'model_drift_watchlist_view_exists' as check_name, count(*) as row_count
+from information_schema.views
+where table_schema = 'ml' and table_name = 'model_drift_watchlist';
+
 select
     tablename as table_name,
     count(*) as indexed_columns
@@ -92,3 +104,41 @@ select
     top_decile_lift_vs_batch_ctr
 from ml.model_comparison_summary
 order by is_canonical_1m_run desc, rows_trained desc, model_name, training_run_id;
+
+select
+    model_name,
+    model_version,
+    training_run_id,
+    train_batch_name,
+    validation_roc_auc,
+    top_decile_lift_vs_batch_ctr,
+    validation_quality_band,
+    ranking_quality_band,
+    drift_severity
+from ml.latest_model_monitoring_dashboard
+order by model_name, model_version;
+
+select
+    batch_id,
+    batch_name,
+    model_name,
+    model_version,
+    batch_rank_by_lift,
+    batch_rank_by_auc,
+    top_decile_lift_vs_batch_ctr,
+    validation_roc_auc
+from ml.batch_model_rankings
+order by batch_id desc, batch_rank_by_lift, model_name, model_version;
+
+select
+    batch_id,
+    batch_name,
+    model_name,
+    model_version,
+    previous_batch_id,
+    drift_status,
+    drift_note,
+    top_decile_lift_delta,
+    actual_ctr_delta
+from ml.model_drift_watchlist
+order by batch_id desc, model_name, model_version;

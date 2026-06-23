@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import argparse
+import gc
 import json
 import pickle
 from datetime import datetime, timezone
@@ -19,6 +20,15 @@ from pipeline_tracking import (
     fetch_batch_details,
     register_batch_artifact,
     resolve_batch_context,
+)
+from ml_feature_engineering import (
+    RAW_CATEGORICAL_COLUMNS,
+    BUCKET_CODE_COLUMNS,
+    apply_feature_engineering,
+    apply_scaler,
+    build_encoding_bundle,
+    finalize_scaler_bundle,
+    update_scaler_state,
 )
 from project_config import ML_MODEL_DIR, ML_TRAINING_DATASET_DIR, PROJECT_ROOT, SQL_DIR, add_db_connection_args, ensure_ml_directories
 from train_ctr_baseline import (
@@ -39,8 +49,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model-name", default="ctr_sgd_logistic")
     parser.add_argument("--model-version", default="v1")
     parser.add_argument("--epochs", type=int, default=2)
-    parser.add_argument("--chunksize", type=int, default=50000)
+    parser.add_argument("--chunksize", type=int, default=10000)
     parser.add_argument("--alpha", type=float, default=1e-5)
+    parser.add_argument("--bootstrap-metadata", action="store_true")
     parser.add_argument("--triggered-by", default="manual")
     add_db_connection_args(parser)
     return parser.parse_args()
@@ -55,25 +66,60 @@ def build_model(alpha: float):
         alpha=alpha,
         learning_rate="optimal",
         random_state=42,
+        average=True,
     )
 
 
-def train_chunked_model(model, train_csv: Path, feature_columns: list[str], *, epochs: int, chunksize: int) -> int:
+def build_scaler_bundle(train_csv: Path, source_feature_columns: list[str], *, encoding_bundle: dict[str, object], chunksize: int):
+    import pandas as pd
+
+    use_columns = [*source_feature_columns, TARGET_COLUMN]
+    scaler_state = None
+    engineered_columns = None
+    for chunk in pd.read_csv(train_csv, usecols=use_columns, chunksize=chunksize):
+        x_chunk, engineered_columns = apply_feature_engineering(chunk[source_feature_columns], encoding_bundle=encoding_bundle)
+        scaler_state = update_scaler_state(scaler_state, x_chunk, feature_columns=engineered_columns)
+
+    if scaler_state is None or engineered_columns is None:
+        raise ValueError("Unable to build scaler bundle from empty training data.")
+    scaler_bundle = finalize_scaler_bundle(scaler_state)
+    return scaler_bundle, engineered_columns
+
+
+def train_chunked_model(
+    model,
+    train_csv: Path,
+    source_feature_columns: list[str],
+    *,
+    encoding_bundle: dict[str, object],
+    scaler_bundle: dict[str, object],
+    epochs: int,
+    chunksize: int,
+) -> int:
     import pandas as pd
 
     total_rows = 0
-    use_columns = [*feature_columns, TARGET_COLUMN]
+    use_columns = [*source_feature_columns, TARGET_COLUMN]
     classes = [0, 1]
     for epoch in range(epochs):
         for chunk in pd.read_csv(train_csv, usecols=use_columns, chunksize=chunksize):
             y_chunk = chunk[TARGET_COLUMN].astype(int)
-            x_chunk = chunk[feature_columns].fillna(0)
+            x_chunk, _ = apply_feature_engineering(chunk[source_feature_columns], encoding_bundle=encoding_bundle)
+            x_chunk = apply_scaler(x_chunk, scaler_bundle)
             if total_rows == 0 and epoch == 0:
                 model.partial_fit(x_chunk, y_chunk, classes=classes)
             else:
                 model.partial_fit(x_chunk, y_chunk)
             total_rows += len(chunk) if epoch == 0 else 0
     return total_rows
+
+
+def load_training_frame(dataset_dir: Path, source_feature_columns: list[str]):
+    import pandas as pd
+
+    encoding_columns = [column for column in [*RAW_CATEGORICAL_COLUMNS, *BUCKET_CODE_COLUMNS] if column in source_feature_columns]
+    use_columns = [*encoding_columns, TARGET_COLUMN]
+    return pd.read_csv(dataset_dir / "train.csv", usecols=use_columns)
 
 
 def upsert_model_registry(
@@ -239,7 +285,8 @@ def upsert_model_metrics(connection, training_run_id: int, split_name: str, metr
 
 def main() -> None:
     args = parse_args()
-    ensure_pipeline_metadata(SQL_DIR, args.database, args)
+    if args.bootstrap_metadata:
+        ensure_pipeline_metadata(SQL_DIR, args.database, args)
     ensure_ml_directories()
 
     batch_id, source_file = resolve_batch_context(
@@ -256,7 +303,27 @@ def main() -> None:
         raise FileNotFoundError(f"Dataset directory not found: {dataset_dir}")
 
     manifest, _, validation_df, test_df = load_dataset_artifacts(dataset_dir)
-    feature_columns = select_training_feature_columns(feature_columns_from_manifest(manifest))
+    source_feature_columns = select_training_feature_columns(feature_columns_from_manifest(manifest))
+    train_frame = load_training_frame(dataset_dir, source_feature_columns)
+    encoding_bundle = build_encoding_bundle(train_frame)
+    del train_frame
+    gc.collect()
+    scaler_bundle, engineered_feature_columns = build_scaler_bundle(
+        dataset_dir / "train.csv",
+        source_feature_columns,
+        encoding_bundle=encoding_bundle,
+        chunksize=args.chunksize,
+    )
+    validation_x, _ = apply_feature_engineering(
+        validation_df[source_feature_columns],
+        encoding_bundle=encoding_bundle,
+    )
+    test_x, _ = apply_feature_engineering(
+        test_df[source_feature_columns],
+        encoding_bundle=encoding_bundle,
+    )
+    validation_x = apply_scaler(validation_x, scaler_bundle)
+    test_x = apply_scaler(test_x, scaler_bundle)
 
     pipeline_run_id = create_pipeline_run(
         batch_id=batch_id,
@@ -288,17 +355,17 @@ def main() -> None:
         train_rows = train_chunked_model(
             model,
             dataset_dir / "train.csv",
-            feature_columns,
+            source_feature_columns,
+            encoding_bundle=encoding_bundle,
+            scaler_bundle=scaler_bundle,
             epochs=args.epochs,
             chunksize=args.chunksize,
         )
 
         validation_y = validation_df[TARGET_COLUMN].astype(int)
-        validation_x = validation_df[feature_columns].fillna(0)
         validation_scores = model.predict_proba(validation_x)[:, 1]
 
         test_y = test_df[TARGET_COLUMN].astype(int)
-        test_x = test_df[feature_columns].fillna(0)
         test_scores = model.predict_proba(test_x)[:, 1]
 
         metrics_payload = {
@@ -308,16 +375,30 @@ def main() -> None:
                 "batch_id": batch_id,
                 "batch_name": batch_name,
                 "dataset_name": dataset_name,
-                "feature_count": len(feature_columns),
+                "feature_count": len(engineered_feature_columns),
+                "source_feature_count": len(source_feature_columns),
+                "feature_engineering_version": encoding_bundle["version"],
                 "generated_at_utc": datetime.now(timezone.utc).isoformat(),
             },
         }
 
+        model_bundle = {
+            "model": model,
+            "encoding_bundle": encoding_bundle,
+            "scaler_bundle": scaler_bundle,
+            "source_feature_columns": source_feature_columns,
+            "engineered_feature_columns": engineered_feature_columns,
+        }
         with model_path.open("wb") as handle:
-            pickle.dump(model, handle)
+            pickle.dump(model_bundle, handle)
         metrics_path.write_text(json.dumps(metrics_payload, indent=2))
 
-        hyperparameters = {"epochs": args.epochs, "chunksize": args.chunksize, "alpha": args.alpha}
+        hyperparameters = {
+            "epochs": args.epochs,
+            "chunksize": args.chunksize,
+            "alpha": args.alpha,
+            "feature_engineering_version": encoding_bundle["version"],
+        }
         with connect(args) as connection:
             model_id = upsert_model_registry(
                 connection,
@@ -325,7 +406,7 @@ def main() -> None:
                 model_version=args.model_version,
                 artifact_path=str(model_path),
                 hyperparameters=hyperparameters,
-                feature_columns=feature_columns,
+                feature_columns=source_feature_columns,
                 notes=f"Chunked SGD model trained from dataset {dataset_name}.",
             )
             training_run_id = insert_training_run(
@@ -348,7 +429,7 @@ def main() -> None:
             artifact_type="ml_model_artifact",
             artifact_format="pickle",
             artifact_path=str(model_path),
-            row_count=len(feature_columns),
+            row_count=len(engineered_feature_columns),
             artifact_status="READY",
             notes="Chunked SGD model artifact.",
             database=args.database,
