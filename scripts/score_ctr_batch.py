@@ -11,6 +11,7 @@ import pickle
 from datetime import datetime, timezone
 from pathlib import Path
 
+from ml_feature_engineering import apply_feature_engineering, apply_scaler
 from pipeline_tracking import (
     complete_pipeline_run,
     complete_pipeline_step,
@@ -36,7 +37,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Score a batch with a trained CTR model")
     parser.add_argument("--batch-name")
     parser.add_argument("--model-name", default="ctr_logistic_regression")
-    parser.add_argument("--model-version", default="v1")
+    parser.add_argument("--model-version")
+    parser.add_argument("--use-active-model", action="store_true")
     parser.add_argument("--bootstrap-metadata", action="store_true")
     parser.add_argument("--triggered-by", default="manual")
     add_db_connection_args(parser)
@@ -92,7 +94,7 @@ def build_score_summary(prediction_frame) -> dict[str, object]:
     }
 
 
-def fetch_model_metadata(connection, model_name: str, model_version: str) -> dict[str, object]:
+def fetch_model_metadata(connection, model_name: str, model_version: str | None, *, use_active_model: bool = False) -> dict[str, object]:
     query = """
         select
             mr.model_id,
@@ -106,15 +108,28 @@ def fetch_model_metadata(connection, model_name: str, model_version: str) -> dic
           on tr.model_id = mr.model_id
          and tr.run_status = 'SUCCESS'
         where mr.model_name = %s
-          and mr.model_version = %s
           and mr.model_status = 'READY'
+    """
+    params: tuple[object, ...] = (model_name,)
+    if use_active_model or not model_version:
+        query += """
+          and mr.is_active_canonical = true
+        """
+    else:
+        query += """
+          and mr.model_version = %s
+        """
+        params = (model_name, model_version)
+    query += """
         order by tr.completed_at desc nulls last, tr.training_run_id desc nulls last
         limit 1;
     """
     with connection.cursor() as cursor:
-        cursor.execute(query, (model_name, model_version))
+        cursor.execute(query, params)
         row = cursor.fetchone()
     if not row:
+        if use_active_model or not model_version:
+            raise ValueError(f"No active canonical READY model found for {model_name}")
         raise ValueError(f"No READY model found for {model_name} {model_version}")
     feature_columns = row[4]
     if not feature_columns:
@@ -250,7 +265,12 @@ def main() -> None:
         import pandas as pd
 
         with connect(args) as connection:
-            model_metadata = fetch_model_metadata(connection, args.model_name, args.model_version)
+            model_metadata = fetch_model_metadata(
+                connection,
+                args.model_name,
+                args.model_version,
+                use_active_model=args.use_active_model or not args.model_version,
+            )
             feature_frame = load_feature_frame(connection, batch_id, model_metadata["feature_columns"])
 
         if feature_frame.empty:
@@ -260,12 +280,31 @@ def main() -> None:
         if artifact_path.suffix == ".pkl":
             with artifact_path.open("rb") as handle:
                 bundle = pickle.load(handle)
-            model = bundle["model"] if isinstance(bundle, dict) and "model" in bundle else bundle
         else:
             import joblib
 
-            model = joblib.load(artifact_path)
-        scored_probabilities = model.predict_proba(feature_frame[model_metadata["feature_columns"]])[:, 1]
+            bundle = joblib.load(artifact_path)
+
+        if isinstance(bundle, dict) and "model" in bundle:
+            encoding_bundle = bundle.get("encoding_bundle")
+            scaler_bundle = bundle.get("scaler_bundle")
+            source_feature_columns = bundle.get("source_feature_columns", model_metadata["feature_columns"])
+        else:
+            encoding_bundle = None
+            scaler_bundle = None
+            source_feature_columns = model_metadata["feature_columns"]
+
+        if encoding_bundle:
+            scored_feature_frame, _ = apply_feature_engineering(
+                feature_frame[source_feature_columns],
+                encoding_bundle=encoding_bundle,
+            )
+            if scaler_bundle:
+                scored_feature_frame = apply_scaler(scored_feature_frame, scaler_bundle)
+        else:
+            scored_feature_frame = feature_frame[source_feature_columns].fillna(0)
+
+        scored_probabilities = predict_ctr_scores(bundle, scored_feature_frame)
         deciles = assign_score_deciles(scored_probabilities)
 
         prediction_frame = pd.DataFrame(
@@ -289,7 +328,9 @@ def main() -> None:
             "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         }
 
-        scoring_root = ML_SCORING_DIR / args.model_name / args.model_version / batch_name
+        resolved_model_name = str(model_metadata["model_name"])
+        resolved_model_version = str(model_metadata["model_version"])
+        scoring_root = ML_SCORING_DIR / resolved_model_name / resolved_model_version / batch_name
         scoring_root.mkdir(parents=True, exist_ok=True)
         predictions_path = scoring_root / "prediction_scores.csv"
         summary_path = scoring_root / "score_summary.json"
@@ -310,7 +351,7 @@ def main() -> None:
         register_batch_artifact(
             batch_id=batch_id,
             pipeline_run_id=pipeline_run_id,
-            artifact_name=f"{args.model_name}_{args.model_version}_prediction_scores",
+            artifact_name=f"{resolved_model_name}_{resolved_model_version}_prediction_scores",
             artifact_type="ml_prediction_scores",
             artifact_format="csv",
             artifact_path=str(predictions_path),
@@ -323,7 +364,7 @@ def main() -> None:
         register_batch_artifact(
             batch_id=batch_id,
             pipeline_run_id=pipeline_run_id,
-            artifact_name=f"{args.model_name}_{args.model_version}_score_summary",
+            artifact_name=f"{resolved_model_name}_{resolved_model_version}_score_summary",
             artifact_type="ml_scoring_summary",
             artifact_format="json",
             artifact_path=str(summary_path),

@@ -40,6 +40,10 @@ select 'latest_model_monitoring_dashboard_view_exists' as check_name, count(*) a
 from information_schema.views
 where table_schema = 'ml' and table_name = 'latest_model_monitoring_dashboard';
 
+select 'active_model_monitoring_dashboard_view_exists' as check_name, count(*) as row_count
+from information_schema.views
+where table_schema = 'ml' and table_name = 'active_model_monitoring_dashboard';
+
 select 'batch_model_rankings_view_exists' as check_name, count(*) as row_count
 from information_schema.views
 where table_schema = 'ml' and table_name = 'batch_model_rankings';
@@ -136,6 +140,18 @@ select
     ranking_quality_band,
     drift_severity
 from ml.latest_model_monitoring_dashboard
+order by model_name, model_version;
+
+select
+    model_name,
+    model_version,
+    training_run_id,
+    validation_roc_auc,
+    validation_pr_auc,
+    validation_log_loss,
+    top_decile_lift_vs_batch_ctr,
+    promotion_status
+from ml.active_model_monitoring_dashboard
 order by model_name, model_version;
 
 select

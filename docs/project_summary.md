@@ -18,6 +18,8 @@ This project takes large-scale advertising event data and turns it into:
 
 It also supports automated incoming-file processing through Airflow, with checksum-based idempotency, archive/failure lifecycle handling, benchmark capture, and drift monitoring across batches.
 
+The platform now also includes a machine-learning extension for CTR prediction, batch scoring, calibration, feature importance, and canonical model governance.
+
 ## Core Stack
 
 - `PostgreSQL`
@@ -133,6 +135,8 @@ It demonstrates:
 - production-style monitoring
 - performance benchmarking
 - ML-ready feature engineering
+- large-batch CTR model training, scoring, and calibration
+- canonical model governance and ML monitoring
 
 ## Best Supporting Docs
 

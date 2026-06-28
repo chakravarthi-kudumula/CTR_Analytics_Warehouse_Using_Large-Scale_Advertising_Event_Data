@@ -118,8 +118,8 @@ Default scheduled retraining strategy:
 - schedule: `30 3 * * 0`
 - target batch: `criteo_1m_ml_canonical_batch`
 - default model family: `ctr_logistic_regression`
-- default manual model version: `v3`
-- default scheduled model version pattern: `v3_YYYYMMDD`
+- default manual model version: `v4`
+- default scheduled model version pattern: `v4_YYYYMMDD`
 
 Example ML DAG config:
 
@@ -127,7 +127,7 @@ Example ML DAG config:
 {
   "batch_name": "criteo_1m_ml_canonical_batch",
   "ml_model_name": "ctr_logistic_regression",
-  "ml_model_version": "v3",
+  "ml_model_version": "v4",
   "ml_chunksize": 10000
 }
 ```

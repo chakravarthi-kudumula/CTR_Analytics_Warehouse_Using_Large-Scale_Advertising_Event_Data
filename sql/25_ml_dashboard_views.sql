@@ -1,5 +1,6 @@
 drop view if exists ml.model_drift_watchlist;
 drop view if exists ml.batch_model_rankings;
+drop view if exists ml.active_model_monitoring_dashboard;
 drop view if exists ml.latest_model_monitoring_dashboard;
 
 create or replace view ml.latest_model_monitoring_dashboard as
@@ -71,6 +72,17 @@ latest_drift as (
         sds.top_decile_lift_delta
     from ml.score_drift_summary sds
     order by sds.model_name, sds.model_version, sds.batch_id desc
+),
+active_canonical_metrics as (
+    select
+        acm.model_name,
+        acm.model_version,
+        acm.training_run_id,
+        acm.validation_roc_auc as active_validation_roc_auc,
+        acm.validation_pr_auc as active_validation_pr_auc,
+        acm.validation_lift_at_10pct as active_validation_lift_at_10pct,
+        acm.top_decile_lift_vs_batch_ctr as active_top_decile_lift_vs_batch_ctr
+    from ml.active_canonical_model acm
 )
 select
     ltr.model_name,
@@ -112,6 +124,23 @@ select
     ld.actual_ctr_delta,
     ld.top_decile_actual_ctr_delta,
     ld.top_decile_lift_delta,
+    0.005::numeric(12, 6) as promotion_min_roc_auc_improvement,
+    0.005::numeric(12, 6) as promotion_min_pr_auc_improvement,
+    0.050::numeric(12, 6) as promotion_min_lift_improvement,
+    ac.active_validation_roc_auc,
+    ac.active_validation_pr_auc,
+    ac.active_validation_lift_at_10pct,
+    (ltr.validation_roc_auc - ac.active_validation_roc_auc) as promotion_roc_auc_gap,
+    (ltr.validation_pr_auc - ac.active_validation_pr_auc) as promotion_pr_auc_gap,
+    (ltr.validation_lift_at_10pct - ac.active_validation_lift_at_10pct) as promotion_lift_gap,
+    case
+        when coalesce(acm.model_id is not null, false) then 'active'
+        when ac.active_validation_roc_auc is null then 'no_active_reference'
+        when (ltr.validation_roc_auc - ac.active_validation_roc_auc) >= 0.005
+         and (ltr.validation_pr_auc - ac.active_validation_pr_auc) >= 0.005
+         and (ltr.validation_lift_at_10pct - ac.active_validation_lift_at_10pct) >= 0.050 then 'eligible'
+        else 'not_eligible'
+    end as promotion_status,
     case
         when ltr.validation_roc_auc >= 0.70 then 'strong'
         when ltr.validation_roc_auc >= 0.60 then 'good'
@@ -144,7 +173,15 @@ left join latest_scoring_batch lsb
 left join latest_drift ld
   on ld.model_name = ltr.model_name
  and ld.model_version = ltr.model_version
- and ld.batch_id = lsb.batch_id;
+ and ld.batch_id = lsb.batch_id
+left join active_canonical_metrics ac
+  on ac.model_name = ltr.model_name;
+
+
+create or replace view ml.active_model_monitoring_dashboard as
+select *
+from ml.latest_model_monitoring_dashboard
+where is_active_canonical = true;
 
 
 create or replace view ml.batch_model_rankings as

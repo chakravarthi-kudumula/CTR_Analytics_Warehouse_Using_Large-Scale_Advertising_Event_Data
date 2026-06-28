@@ -277,7 +277,7 @@ Trigger the dedicated ML DAG manually with config like:
 {
   "batch_name": "criteo_1m_ml_canonical_batch",
   "ml_model_name": "ctr_logistic_regression",
-  "ml_model_version": "v3",
+  "ml_model_version": "v4_calibrated",
   "ml_chunksize": 10000
 }
 ```
@@ -498,6 +498,7 @@ Main ML objects added:
 - `ml.score_drift_summary`
 - `ml.model_comparison_summary`
 - `ml.latest_model_monitoring_dashboard`
+- `ml.active_model_monitoring_dashboard`
 - `ml.batch_model_rankings`
 - `ml.model_drift_watchlist`
 - `ml.model_feature_importance`
@@ -518,26 +519,34 @@ Canonical large-batch ML run:
 - train rows: `714,286`
 - validation rows: `142,857`
 - test rows: `142,857`
-- canonical active baseline: `ctr_logistic_regression v3`
+- best ranking model: `ctr_logistic_regression v4`
+- best practical production-style model: `ctr_logistic_regression v4_calibrated`
+- active canonical model: `ctr_logistic_regression v4_calibrated`
 - scalable implementation path: chunked SGD logistic training plus chunked batch scoring with train-derived scaling
+- calibration path: sigmoid calibration on top of the tuned `v4` baseline
 - explainability path: coefficient extraction into `ml.model_feature_importance`
 - promotion path: scheduled candidates are promoted only if they beat the active canonical model on configured metric thresholds
 
 Canonical `1M` validation metrics:
 
-- ROC-AUC: `0.710239`
-- PR-AUC: `0.398863`
-- log loss: `6.521392`
-- precision@10%: `0.435111`
-- lift@10%: `1.695083`
+- `v4` ROC-AUC: `0.753310`
+- `v4` PR-AUC: `0.533925`
+- `v4` log loss: `0.597277`
+- `v4` lift@10%: `2.485904`
+- `v4_calibrated` ROC-AUC: `0.751863`
+- `v4_calibrated` PR-AUC: `0.527533`
+- `v4_calibrated` log loss: `0.483303`
+- `v4_calibrated` lift@10%: `2.520879`
 
 Canonical `1M` scoring summary:
 
 - scored rows: `1,000,000`
-- average predicted CTR: `0.511890`
+- `v4` average predicted CTR: `0.436209`
+- `v4_calibrated` average predicted CTR: `0.241120`
 - batch actual CTR: `0.256223`
-- top decile actual CTR: `0.561030`
-- top decile lift vs batch CTR: `2.189616`
+- `v4` top decile actual CTR: `0.642220`
+- `v4_calibrated` top decile actual CTR: `0.642220`
+- `v4` and `v4_calibrated` top decile lift vs batch CTR: `2.506488`
 
 The earlier tiny incoming-batch experiments remain in the metadata layer for comparison, but they are no longer the main ML claim. The canonical ML story is now the `1M` run above, while small-batch runs are treated as early prototype experiments and are exposed through `ml.model_comparison_summary`.
 
@@ -557,6 +566,10 @@ Score a smaller batch and write prediction outputs into `ml.prediction_scores`:
 
 `python3 scripts/score_ctr_batch.py --batch-name <batch_name>`
 
+Score with the current active canonical model automatically:
+
+`python3 scripts/score_ctr_batch.py --batch-name <batch_name> --use-active-model`
+
 Train the scalable canonical `1M` logistic baseline for larger batches:
 
 `python3 scripts/train_ctr_sgd.py --batch-name <batch_name>`
@@ -564,6 +577,10 @@ Train the scalable canonical `1M` logistic baseline for larger batches:
 Score a larger batch with the chunked scoring path:
 
 `python3 scripts/score_ctr_batch_chunked.py --batch-name <batch_name> --model-name ctr_logistic_regression`
+
+Score a larger batch with the active canonical model automatically:
+
+`python3 scripts/score_ctr_batch_chunked.py --batch-name <batch_name> --use-active-model`
 
 Train an experimental tree-based comparison model:
 
@@ -591,11 +608,11 @@ Apply or refresh the canonical model-promotion objects:
 
 Extract feature importance for the latest trained model version:
 
-`python3 scripts/extract_model_feature_importance.py --model-name ctr_logistic_regression --model-version v3`
+`python3 scripts/extract_model_feature_importance.py --model-name ctr_logistic_regression --model-version v4`
 
 Evaluate whether a scheduled candidate should replace the active canonical model:
 
-`python3 scripts/promote_canonical_model.py --model-name ctr_logistic_regression --candidate-version v3_YYYYMMDD`
+`python3 scripts/promote_canonical_model.py --model-name ctr_logistic_regression --candidate-version v4_YYYYMMDD`
 
 ## Portfolio Positioning
 
@@ -609,3 +626,7 @@ This project now demonstrates:
 - performance-minded use of materialized views, indexes, and refreshable analytical assets
 - repeatable local execution through `scripts/run_pipeline.py`
 - repository validation through unit tests and GitHub Actions CI
+
+Useful ML overview:
+
+- [interview_ready_ml_summary.md](/Users/chakri/Documents/SQL%20Project/advertisement-analytics-warehouse/docs/interview_ready_ml_summary.md)

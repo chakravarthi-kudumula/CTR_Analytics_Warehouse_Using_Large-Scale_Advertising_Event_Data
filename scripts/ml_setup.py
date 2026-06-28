@@ -60,6 +60,7 @@ def main() -> None:
                   'score_drift_summary',
                   'model_comparison_summary',
                   'latest_model_monitoring_dashboard',
+                  'active_model_monitoring_dashboard',
                   'batch_model_rankings',
                   'model_drift_watchlist',
                   'latest_model_feature_importance',

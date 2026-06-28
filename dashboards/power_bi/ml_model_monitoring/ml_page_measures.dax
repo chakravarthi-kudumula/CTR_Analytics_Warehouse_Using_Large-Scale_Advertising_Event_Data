@@ -13,6 +13,21 @@ CALCULATE (
     latest_model_monitoring_dashboard[is_canonical_1m_run] = TRUE ()
 )
 
+Active Model Validation ROC AUC =
+MAX ( active_model_monitoring_dashboard[validation_roc_auc] )
+
+Active Model Validation PR AUC =
+MAX ( active_model_monitoring_dashboard[validation_pr_auc] )
+
+Active Model Top Decile Lift =
+MAX ( active_model_monitoring_dashboard[top_decile_lift_vs_batch_ctr] )
+
+Active Model Promotion Eligible Count =
+CALCULATE (
+    COUNTROWS ( latest_model_monitoring_dashboard ),
+    latest_model_monitoring_dashboard[promotion_status] = "eligible"
+)
+
 Investigate Drift Count =
 CALCULATE (
     COUNTROWS ( model_drift_watchlist ),

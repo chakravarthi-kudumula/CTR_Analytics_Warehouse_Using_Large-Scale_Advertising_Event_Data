@@ -226,7 +226,9 @@ Alternative:
 - score a separate incoming/demo batch
 
 Current canonical implementation note:
-- the active large-batch baseline uses a chunked SGD-based logistic training path under the canonical model name `ctr_logistic_regression`
+- the best current practical model is `ctr_logistic_regression v4_calibrated`
+- the strongest uncalibrated ranking model is `ctr_logistic_regression v4`
+- batch scoring can resolve the active canonical version automatically through `ml.active_canonical_model`
 - small-batch experiments are still retained in metadata, but they are treated as prototype runs rather than the main benchmark story
 
 ## Feature Strategy

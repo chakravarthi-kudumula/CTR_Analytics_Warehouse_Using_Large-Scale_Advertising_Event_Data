@@ -29,8 +29,9 @@ TARGET_COLUMN = "label"
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Score a large batch with chunked prediction processing")
     parser.add_argument("--batch-name")
-    parser.add_argument("--model-name", default="ctr_sgd_logistic")
-    parser.add_argument("--model-version", default="v1")
+    parser.add_argument("--model-name", default="ctr_logistic_regression")
+    parser.add_argument("--model-version")
+    parser.add_argument("--use-active-model", action="store_true")
     parser.add_argument("--chunksize", type=int, default=10000)
     parser.add_argument("--bootstrap-metadata", action="store_true")
     parser.add_argument("--triggered-by", default="manual")
@@ -156,7 +157,12 @@ def main() -> None:
         import pandas as pd
 
         with connect(args) as connection:
-            model_metadata = fetch_model_metadata(connection, args.model_name, args.model_version)
+            model_metadata = fetch_model_metadata(
+                connection,
+                args.model_name,
+                args.model_version,
+                use_active_model=args.use_active_model or not args.model_version,
+            )
 
         with open(model_metadata["artifact_path"], "rb") as handle:
             model_bundle = pickle.load(handle)

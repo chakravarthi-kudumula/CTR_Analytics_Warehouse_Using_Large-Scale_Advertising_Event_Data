@@ -2,6 +2,7 @@
 
 This folder contains dashboard-ready assets for a Power BI page built on top of:
 
+- `ml.active_model_monitoring_dashboard`
 - `ml.latest_model_monitoring_dashboard`
 - `ml.batch_model_rankings`
 - `ml.model_drift_watchlist`

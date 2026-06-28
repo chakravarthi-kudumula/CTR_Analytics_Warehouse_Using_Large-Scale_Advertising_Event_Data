@@ -20,8 +20,10 @@ Completed in this step:
 - ML monitoring views added for decile performance and score drift
 - chunked large-batch training added through `train_ctr_sgd.py`
 - chunked large-batch scoring added through `score_ctr_batch_chunked.py`
+- active-canonical model resolution added to the scoring paths
 - a canonical `1M` ML batch was rebuilt and used for the active Logistic Regression result
 - model-comparison SQL view added so earlier small-batch experiments can be compared honestly against the canonical `1M` run
+- tuned `v4` and calibrated `v4_calibrated` model versions added on top of the canonical `1M` batch
 
 This means the project can now store:
 - model versions
@@ -74,25 +76,37 @@ The active ML baseline is now based on:
 
 The earlier `120`-row and other tiny incoming-batch experiments still exist in metadata for comparison, but they are no longer the main ML story.
 
-### Current canonical Logistic Regression result
+### Current best practical Logistic Regression result
 
-The canonical `ctr_logistic_regression v3` result is now backed by the `1M` batch through a chunked SGD-based logistic training path with shared feature engineering and train-derived scaling.
+The best current practical model is `ctr_logistic_regression v4_calibrated`, built on top of the tuned `v4` large-batch logistic model and validated on the canonical `1M` batch.
 
 Current metrics:
 
-- validation ROC-AUC: `0.710239`
-- validation PR-AUC: `0.398863`
-- validation log loss: `6.521392`
-- validation precision@10%: `0.435111`
-- validation lift@10%: `1.695083`
+- validation ROC-AUC: `0.751863`
+- validation PR-AUC: `0.527533`
+- validation log loss: `0.483303`
+- validation precision@10%: `0.632787`
+- validation lift@10%: `2.520879`
+- test ROC-AUC: `0.751757`
+- test PR-AUC: `0.536907`
+- test log loss: `0.490528`
 
 Current scored output:
 
 - scored rows: `1,000,000`
-- average predicted CTR: `0.511890`
+- average predicted CTR: `0.241120`
 - batch actual CTR: `0.256223`
-- top decile actual CTR: `0.561030`
-- top decile lift vs batch CTR: `2.189616`
+- top decile actual CTR: `0.642220`
+- top decile lift vs batch CTR: `2.506488`
+
+For pure ranking strength, `ctr_logistic_regression v4` remains the strongest uncalibrated version:
+
+- validation ROC-AUC: `0.753310`
+- validation PR-AUC: `0.533925`
+- validation log loss: `0.597277`
+- test ROC-AUC: `0.751757`
+- test PR-AUC: `0.536907`
+- top decile lift vs batch CTR: `2.506488`
 
 ### How to interpret earlier small-batch experiments
 
@@ -117,14 +131,20 @@ New dashboard-ready ML monitoring views now expose:
 
 These make it easier to answer:
 - what is the latest quality level of each model version
+- what is the currently active canonical model
+- which models are promotion-eligible against the active baseline
 - which model ranked best for a scored batch
 - which scored batches should be investigated for drift
 - which features and feature groups drive the latest trained model
 
 The platform now also supports canonical model promotion:
 - `ml.active_canonical_model` shows which version is currently active
+- `ml.active_model_monitoring_dashboard` exposes the active model directly for dashboard and reporting consumption
 - `ml.model_promotion_audit` records promotion or rejection decisions
 - scheduled retraining candidates are promoted only if they beat the active canonical model on configured ROC-AUC, PR-AUC, and lift thresholds
+
+Current active canonical model:
+- `ctr_logistic_regression v4_calibrated`
 
 ## Why This Step Matters
 
@@ -152,6 +172,7 @@ And it now gives us a baseline training path that can:
 
 And it now gives us a scoring path that can:
 - load a registered trained model
+- resolve the active canonical model automatically when a scoring version is not supplied
 - score a chosen batch from `feature_store.ctr_training_features`
 - write probabilities into `ml.prediction_scores`
 - assign score deciles and top-decile flags

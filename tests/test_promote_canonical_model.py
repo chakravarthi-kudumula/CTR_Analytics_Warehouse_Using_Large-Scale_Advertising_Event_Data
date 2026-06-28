@@ -10,6 +10,7 @@ SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
+from project_config import ML_DEFAULT_MODEL_BASE_VERSION
 from promote_canonical_model import evaluate_promotion
 
 
@@ -63,7 +64,7 @@ class PromoteCanonicalModelTests(unittest.TestCase):
             min_lift_improvement=0.05,
         )
         candidate = {
-            "model_version": "v3",
+            "model_version": ML_DEFAULT_MODEL_BASE_VERSION,
             "rows_trained": 714286,
             "validation_roc_auc": 0.710239,
             "validation_pr_auc": 0.398863,
@@ -71,7 +72,7 @@ class PromoteCanonicalModelTests(unittest.TestCase):
             "training_run_id": 8,
         }
         active = {
-            "model_version": "v3_20260614",
+            "model_version": f"{ML_DEFAULT_MODEL_BASE_VERSION}_20260614",
             "validation_roc_auc": 0.710239,
             "validation_pr_auc": 0.398863,
             "validation_lift_at_10pct": 1.695083,
@@ -88,7 +89,7 @@ class PromoteCanonicalModelTests(unittest.TestCase):
             min_lift_improvement=0.05,
         )
         candidate = {
-            "model_version": "v3_20260614",
+            "model_version": f"{ML_DEFAULT_MODEL_BASE_VERSION}_20260614",
             "rows_trained": 714286,
             "validation_roc_auc": 0.710239,
             "validation_pr_auc": 0.398863,
@@ -96,7 +97,7 @@ class PromoteCanonicalModelTests(unittest.TestCase):
             "training_run_id": 9,
         }
         base_reference = {
-            "model_version": "v3",
+            "model_version": ML_DEFAULT_MODEL_BASE_VERSION,
             "rows_trained": 714286,
             "validation_roc_auc": 0.710239,
             "validation_pr_auc": 0.398863,
